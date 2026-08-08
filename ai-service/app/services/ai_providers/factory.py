@@ -36,6 +36,10 @@ def get_ai_provider() -> AIProvider:
         from app.services.ai_providers.custom_provider import CustomProvider
         return CustomProvider()
 
+    elif provider_name == "kimi":
+        from app.services.ai_providers.kimi_provider import KimiProvider
+        return KimiProvider()
+
     else:
         # 默认使用Mock，不阻塞开发
         print(f"[WARN] 未知的AI Provider: {provider_name}, 回退到Mock")
