@@ -47,9 +47,17 @@
 │                         │ 原始响应 (JSON/文本)            │
 │                         ▼                                │
 │  ┌──────────────────────────────────────────────────┐   │
-│  │ 阶段5: AI结果解析层 ⭐ 新增核心层                 │   │
+│  │ 阶段5: AI结果解析层 ⭐ 核心层                      │   │
 │  │ AIResponseParser.parse(raw_response)              │   │
 │  │ → 标准化为 RecognitionResult                      │   │
+│  └──────────────────────┬───────────────────────────┘   │
+│                         │                                │
+│                         ▼                                │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │ 阶段5.5: 置信度校验层 ⭐ 新增核心层                │   │
+│  │ ConfidenceEvaluator.evaluate(results)             │   │
+│  │ → 分级: high(≥90%) / medium(70-89%) / low(<70%) │   │
+│  │ → 低置信度触发辅助问答流程                         │   │
 │  └──────────────────────┬───────────────────────────┘   │
 │                         │                                │
 │                         ▼                                │
@@ -335,7 +343,143 @@ def get_parser(provider_name: str) -> AIResponseParser:
 
 ---
 
-## 4. 阶段6: 本地病虫害库匹配流程
+## 4. 阶段5.5: 置信度校验层 ⭐ ConfidenceEvaluator
+
+### 4.1 设计原理
+
+```
+AI输出 → Parser标准化 → ConfidenceEvaluator分级
+                              │
+              ┌───────────────┼───────────────┐
+              │               │               │
+           ≥90%           70-89%           <70%
+          高置信度         中置信度         低置信度
+              │               │               │
+          直接展示        "可能是"       进入辅助问答
+          完整结果        展示结果        引导用户补充
+                         标注不确定性     更多信息
+```
+
+### 4.2 实现代码
+
+```python
+from dataclasses import dataclass
+from enum import Enum
+from typing import List
+
+
+class ConfidenceLevel(Enum):
+    HIGH = "high"       # ≥90% — 直接展示
+    MEDIUM = "medium"   # 70-89% — 提示"可能是"
+    LOW = "low"         # <70% — 触发辅助问答
+
+
+@dataclass
+class EvaluatedResult:
+    """经置信度校验后的结果"""
+    result: StandardizedResult
+    confidence_level: ConfidenceLevel
+    display_message_zh: str   # 给用户看的中文提示
+    display_message_lo: str   # 给用户看的老挝语提示
+    should_trigger_qa: bool   # 是否触发辅助问答
+    recommended_action: str   # 建议的下一步动作
+
+
+class ConfidenceEvaluator:
+    """置信度校验器"""
+    
+    HIGH_THRESHOLD = 0.90
+    MEDIUM_THRESHOLD = 0.70
+    
+    def evaluate(self, results: List[StandardizedResult], language: str = "zh") -> List[EvaluatedResult]:
+        evaluated = []
+        
+        for r in results:
+            level = self._classify(r.confidence)
+            evaluated.append(EvaluatedResult(
+                result=r,
+                confidence_level=level,
+                display_message_zh=self._get_message(r, level, "zh"),
+                display_message_lo=self._get_message(r, level, "lo"),
+                should_trigger_qa=(level == ConfidenceLevel.LOW),
+                recommended_action=self._get_action(level, r, language),
+            ))
+        
+        return evaluated
+    
+    def _classify(self, confidence: float) -> ConfidenceLevel:
+        if confidence >= self.HIGH_THRESHOLD:
+            return ConfidenceLevel.HIGH
+        elif confidence >= self.MEDIUM_THRESHOLD:
+            return ConfidenceLevel.MEDIUM
+        else:
+            return ConfidenceLevel.LOW
+    
+    def _get_message(self, result, level: ConfidenceLevel, lang: str) -> str:
+        """根据置信度和语言生成用户提示"""
+        if level == ConfidenceLevel.HIGH:
+            if lang == "zh":
+                return f"识别结果: {result.disease_name_zh} (置信度 {result.confidence*100:.0f}%)"
+            else:
+                return f"ຜົນການກວດສອບ: {result.disease_name_lo} ({result.confidence*100:.0f}%)"
+        
+        elif level == ConfidenceLevel.MEDIUM:
+            if lang == "zh":
+                return f"可能是 {result.disease_name_zh} (置信度 {result.confidence*100:.0f}%)，建议结合实际情况判断"
+            else:
+                return f"ອາດຈະເປັນ {result.disease_name_lo}"
+        
+        else:
+            if lang == "zh":
+                return f"不确定是否为 {result.disease_name_zh}，建议补充更多信息"
+            else:
+                return f"ບໍ່ແນ່ໃຈວ່າເປັນ {result.disease_name_lo}, ກະລຸນາໃຫ້ຂໍ້ມູນເພີ່ມເຕີມ"
+    
+    def _get_action(self, level: ConfidenceLevel, result, lang: str) -> str:
+        """根据置信度建议下一步"""
+        if level == ConfidenceLevel.HIGH:
+            return "show_full_result"  # 展示完整结果+防控方案
+        elif level == ConfidenceLevel.MEDIUM:
+            return "show_result_with_warning"  # 展示结果但标注不确定
+        else:
+            return "trigger_diagnostic_qa"  # 触发诊断Agent追问
+```
+
+### 4.3 用户体验效果
+
+```
+高置信度 (≥90%):
+┌──────────────────────────────┐
+│ ✅ 识别完成                   │
+│ 🍅 番茄晚疫病                 │
+│ 置信度: 92%  ████████████    │
+│                              │
+│ 📋 防控方案 →                 │
+└──────────────────────────────┘
+
+中置信度 (70-89%):
+┌──────────────────────────────┐
+│ ⚠️ 可能是番茄早疫病           │
+│ 置信度: 78%  ████████░░      │
+│                              │
+│ 建议结合实际情况判断           │
+│ 📋 查看防控方案 →             │
+└──────────────────────────────┘
+
+低置信度 (<70%):
+┌──────────────────────────────┐
+│ ❓ 无法确定，需要更多信息      │
+│ 最可能: 番茄叶霉病 (62%)     │
+│                              │
+│ 🔍 请补充以下信息：           │
+│  [叶片正面] [叶片背面] [茎秆] │
+│  或进入诊断助手 →             │
+└──────────────────────────────┘
+```
+
+---
+
+## 5. 阶段6: 本地病虫害库匹配流程
 
 ```python
 async def match_local_disease_db(

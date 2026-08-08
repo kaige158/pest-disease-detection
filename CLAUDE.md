@@ -61,12 +61,13 @@
 | 层级 | 技术 | 原因 |
 |------|------|------|
 | **移动端** | Flutter | 一套代码同时输出Android+iOS |
-| **后端** | FastAPI（优先）/ Spring Boot | 模块化设计，Python与AI生态更契合 |
-| **数据库** | PostgreSQL（优先）/ MySQL | 关系型主库，PostgreSQL对JSON/中文支持更好 |
-| **缓存** | Redis（可选） | 热点数据、会话缓存、AI结果缓存 |
+| **业务后端** | **Spring Boot 3** | 用户/知识库/识别记录/防控方案/数据资产管理 |
+| **AI服务** | **FastAPI (Python)** | 独立AI微服务，Provider抽象+解析+置信度校验 |
+| **数据库** | PostgreSQL 16 | 分core/extension/audit三层schema |
+| **缓存** | Redis 7 | 热点数据、会话缓存、AI结果缓存 |
 | **文件存储** | 本地存储 + 云OSS | 图片上传与识别结果存储 |
 | **AI模型** | 抽象Provider接口 | 不自行训练，全部API调用，支持多模型切换 |
-| **部署** | Docker + 云服务器 | 先云服务器，后可迁学校服务器 |
+| **部署** | Docker Compose | PostgreSQL + Redis + Spring Boot + AI Service |
 
 ## AI模块架构（核心抽象 — 平台化设计）
 
