@@ -1,0 +1,22 @@
+{
+  "@@locale": "lo",
+  "appTitle": "ປ້ອງກັນພະຍາດພືດ ຈີນ-ລາວ",
+  "tabRecognition": "ກວດສອບ",
+  "tabKnowledge": "ຄວາມຮູ້",
+  "tabAssistant": "ຜູ້ຊ່ວຍ AI",
+  "tabSettings": "ຕັ້ງຄ່າ",
+  "recognitionTitle": "ກວດສອບພະຍາດພືດ",
+  "recognitionHint": "ຖ່າຍຮູບກວດຫາພະຍາດ",
+  "recognitionDesc": "ຖ່າຍຮູບ ຫຼື ເລືອກຮູບໃບໄມ້, AI ກວດສອບອັດຕະໂນມັດ",
+  "knowledgeTitle": "ຄວາມຮູ້ກະສິກຳ",
+  "knowledgeDesc": "ເບິ່ງຂໍ້ມູນພືດ ແລະ ພະຍາດພືດ",
+  "assistantTitle": "ຜູ້ຊ່ວຍ AI",
+  "assistantDesc": "ພິມຊື່ຜັກ ຫຼື ຄຳຖາມ, AI ຕອບໃຫ້ທ່ານ",
+  "settingsTitle": "ຕັ້ງຄ່າ",
+  "settingsLanguage": "ພາສາ",
+  "settingsLanguageCurrent": "ປັດຈຸບັນ: ລາວ",
+  "settingsLanguageChinese": "ຈີນ",
+  "settingsLanguageLao": "ລາວ",
+  "settingsAbout": "ກ່ຽວກັບ",
+  "settingsAboutDesc": "ແອັບປ້ອງກັນພະຍາດພືດ ຈີນ-ລາວ"
+}

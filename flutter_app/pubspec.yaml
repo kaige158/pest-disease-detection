@@ -1,0 +1,42 @@
+name: laos_agri_app
+description: "中老双语农业病虫害识别与防控APP"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  dio: ^5.7.0                      # HTTP客户端
+  provider: ^6.1.0                 # 状态管理
+  image_picker: ^1.1.0             # 相机/相册
+  cached_network_image: ^3.4.0     # 图片缓存
+  intl: ^0.20.2                    # 国际化 (版本跟随Flutter SDK内置)
+  flutter_dotenv: ^5.2.0           # 环境变量管理
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  # 国际化资源
+  generate: true
+
+  # 图片资源
+  assets:
+    - assets/images/vegetable/
+    - assets/images/fruit/
+
+  # 知识库数据 (由老师提供后放入对应目录)
+  # - assets/data/vegetable_knowledge/
+  # - assets/data/fruit_knowledge/

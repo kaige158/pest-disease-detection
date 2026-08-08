@@ -1,0 +1,22 @@
+{
+  "@@locale": "zh",
+  "appTitle": "中老农业病虫害防控",
+  "tabRecognition": "识别",
+  "tabKnowledge": "知识库",
+  "tabAssistant": "AI助手",
+  "tabSettings": "设置",
+  "recognitionTitle": "病虫害识别",
+  "recognitionHint": "拍照识别病虫害",
+  "recognitionDesc": "拍照或从相册上传叶片照片，AI自动识别病虫害",
+  "knowledgeTitle": "农业知识库",
+  "knowledgeDesc": "浏览作物分类与病虫害知识",
+  "assistantTitle": "AI农业助手",
+  "assistantDesc": "输入作物名称或农业问题，AI助手为你解答",
+  "settingsTitle": "设置",
+  "settingsLanguage": "语言",
+  "settingsLanguageCurrent": "当前: 中文",
+  "settingsLanguageChinese": "中文",
+  "settingsLanguageLao": "老挝语",
+  "settingsAbout": "关于",
+  "settingsAboutDesc": "中老双语农业病虫害识别与防控APP"
+}
