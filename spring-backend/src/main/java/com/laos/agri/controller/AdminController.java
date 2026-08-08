@@ -2,6 +2,8 @@ package com.laos.agri.controller;
 
 import com.laos.agri.dto.ApiResponse;
 import com.laos.agri.repository.DiagnosisRecordRepository;
+import com.laos.agri.repository.DiseaseImageRepository;
+import com.laos.agri.repository.DiseaseRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,9 +17,15 @@ import java.util.Map;
 public class AdminController {
 
     private final DiagnosisRecordRepository diagnosisRepo;
+    private final DiseaseRepository diseaseRepo;
+    private final DiseaseImageRepository imageRepo;
 
-    public AdminController(DiagnosisRecordRepository diagnosisRepo) {
+    public AdminController(DiagnosisRecordRepository diagnosisRepo,
+                           DiseaseRepository diseaseRepo,
+                           DiseaseImageRepository imageRepo) {
         this.diagnosisRepo = diagnosisRepo;
+        this.diseaseRepo = diseaseRepo;
+        this.imageRepo = imageRepo;
     }
 
     /** 获取待审核诊断列表 */
@@ -64,8 +72,12 @@ public class AdminController {
     @GetMapping("/stats")
     public ApiResponse<?> getStats() {
         var counts = diagnosisRepo.countByVersion();
+        long pending = diagnosisRepo.findPendingReview(PageRequest.of(0, 1000)).getTotalElements();
         return ApiResponse.ok(Map.of(
             "total_diagnoses", diagnosisRepo.count(),
+            "pending_review", pending,
+            "total_diseases", diseaseRepo.count(),
+            "usable_images", imageRepo.countUsableByVersion("vegetable") + imageRepo.countUsableByVersion("fruit"),
             "by_version", counts
         ));
     }

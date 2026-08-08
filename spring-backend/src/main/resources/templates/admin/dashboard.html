@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>仪表盘 — 农业AI平台</title>
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="logo">🌱 农业AI平台<small>专家管理后台</small></div>
+        <a href="/admin/dashboard" class="active"><span class="icon">📊</span> <span>仪表盘</span></a>
+        <a href="/admin/review"><span class="icon">🔍</span> <span>AI审核中心</span></a>
+        <a href="/admin/knowledge"><span class="icon">📚</span> <span>知识库管理</span></a>
+        <a href="/admin/stats"><span class="icon">📈</span> <span>数据统计</span></a>
+    </nav>
+
+    <div class="main">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <h2>📊 仪表盘</h2>
+            <span style="font-size:13px;color:#666;">👩‍🏫 老师 | 欢迎回来</span>
+        </div>
+
+        <!-- 统计卡片 -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="number" th:text="${totalDiagnoses}">0</div>
+                <div class="label">累计识别次数</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="color:#FF9800" th:text="${pendingReview}">0</div>
+                <div class="label">待审核</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" th:text="${totalDiseases}">0</div>
+                <div class="label">病虫害条目</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="color:#1565C0" th:text="${usableImages}">0</div>
+                <div class="label">可用图片数据</div>
+            </div>
+        </div>
+
+        <!-- 快捷操作 -->
+        <div class="card" style="text-align:center;padding:40px;">
+            <h3>🚀 快捷操作</h3>
+            <div style="display:flex;gap:12px;justify-content:center;margin-top:16px;">
+                <a href="/admin/review" class="btn btn-warning">
+                    🔍 审核待处理结果 (<span th:text="${pendingReview}">0</span>条)
+                </a>
+                <a href="/admin/knowledge" class="btn btn-primary">
+                    📚 管理知识库
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/admin.js"></script>
+</body>
+</html>

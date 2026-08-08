@@ -10,7 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * Spring Security配置 — 初期开放所有接口，后期逐步启用认证
+ * Spring Security配置 — 开发阶段开放访问，生产环境收紧
  */
 @Configuration
 @EnableWebSecurity
@@ -25,19 +25,31 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
             .authorizeHttpRequests(auth -> auth
-                // 公开接口 — 知识库、识别、健康检查
+                // 公开API
                 .requestMatchers("/api/v1/knowledge/**").permitAll()
                 .requestMatchers("/api/v1/recognition/**").permitAll()
                 .requestMatchers("/api/v1/assistant/**").permitAll()
+                // 管理API + Web后台 (开发阶段开放)
+                .requestMatchers("/api/v1/admin/**").permitAll()
+                .requestMatchers("/admin/**").permitAll()
+                // 静态资源
+                .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
+                // 文档 + 健康检查
                 .requestMatchers("/health", "/api-docs/**", "/swagger-ui/**").permitAll()
-                // 管理接口 — 后期需要认证
-                .requestMatchers("/api/v1/admin/**").authenticated()
+                // 其他
                 .anyRequest().permitAll()
             )
-            .formLogin(form -> form.disable())
-            .httpBasic(basic -> basic.disable());
+            .formLogin(form -> form
+                .loginPage("/admin/login")
+                .defaultSuccessUrl("/admin/dashboard")
+                .permitAll()
+            )
+            .logout(logout -> logout
+                .logoutSuccessUrl("/admin/login")
+                .permitAll()
+            );
 
         return http.build();
     }

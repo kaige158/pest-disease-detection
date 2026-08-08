@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>登录 — 农业AI专家后台</title>
+    <link rel="stylesheet" href="/css/admin.css">
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 40px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .login-container h1 { font-size: 24px; margin-bottom: 8px; }
+        .login-container p { color: #666; margin-bottom: 24px; font-size: 14px; }
+        .login-container input {
+            width: 100%; padding: 12px; margin-bottom: 16px;
+            border: 1px solid #E0E0E0; border-radius: 6px; font-size: 14px;
+        }
+        .login-container .btn { width: 100%; padding: 12px; font-size: 15px; }
+    </style>
+</head>
+<body style="background:#E8F5E9;">
+    <div class="login-container">
+        <h1>🌱 农业AI服务平台</h1>
+        <p>专家管理后台</p>
+        <form action="/admin/dashboard" method="get">
+            <input type="text" placeholder="手机号" value="admin">
+            <input type="password" placeholder="密码" value="password">
+            <button type="submit" class="btn btn-primary">登录</button>
+        </form>
+        <p style="font-size:11px;color:#999;margin-top:16px;">
+            开发阶段默认开放访问 | 后期启用Spring Security认证
+        </p>
+    </div>
+</body>
+</html>

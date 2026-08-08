@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>知识库管理 — 农业AI平台</title>
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="logo">🌱 农业AI平台<small>专家管理后台</small></div>
+        <a href="/admin/dashboard"><span class="icon">📊</span> <span>仪表盘</span></a>
+        <a href="/admin/review"><span class="icon">🔍</span> <span>AI审核中心</span></a>
+        <a href="/admin/knowledge" class="active"><span class="icon">📚</span> <span>知识库管理</span></a>
+        <a href="/admin/stats"><span class="icon">📈</span> <span>数据统计</span></a>
+    </nav>
+
+    <div class="main">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <h2>📚 知识库管理</h2>
+            <button class="btn btn-primary" onclick="showAddDiseaseForm()">+ 新增病虫害</button>
+        </div>
+
+        <!-- 搜索 + 筛选 -->
+        <div class="card" style="padding:12px 16px;">
+            <div style="display:flex;gap:12px;align-items:center;">
+                <input type="text" placeholder="搜索病虫害..." style="flex:1;padding:8px 12px;border:1px solid #E0E0E0;border-radius:4px;font-size:13px;" id="searchInput">
+                <select style="padding:8px 12px;border:1px solid #E0E0E0;border-radius:4px;font-size:13px;" id="versionFilter">
+                    <option value="">全部版本</option>
+                    <option value="vegetable">蔬菜版</option>
+                    <option value="fruit">果树版</option>
+                </select>
+                <button class="btn btn-primary btn-sm" onclick="searchDiseases()">搜索</button>
+            </div>
+        </div>
+
+        <!-- 病虫害列表 -->
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>中文名</th>
+                        <th>老挝语</th>
+                        <th>作物</th>
+                        <th>类型</th>
+                        <th>版本</th>
+                        <th>图片</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="diseaseTableBody">
+                    <tr th:each="d : ${diseases}">
+                        <td th:text="${d.id}">1</td>
+                        <td style="font-weight:600;" th:text="${d.nameZh}">-</td>
+                        <td style="font-size:12px;color:#666;" th:text="${d.nameLo}">-</td>
+                        <td th:text="${d.cropId}">-</td>
+                        <td>
+                            <span class="badge" th:classappend="${d.type == 'disease'} ? 'badge-info' : 'badge-warning'"
+                                  th:text="${d.type == 'disease'} ? '病害' : '虫害'">-</span>
+                        </td>
+                        <td th:text="${d.version}">-</td>
+                        <td th:text="${d.imageCount} + '张'">0张</td>
+                        <td>
+                            <button class="btn btn-outline btn-sm" th:onclick="'editDisease(' + ${d.id} + ')'">✏️</button>
+                            <button class="btn btn-outline btn-sm" th:onclick="'editPrevention(' + ${d.id} + ')'">💊</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 新增/编辑病虫害弹窗 (隐藏) -->
+        <div id="diseaseModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;display:none;align-items:center;justify-content:center;">
+            <div style="background:white;border-radius:8px;padding:24px;width:700px;max-height:80vh;overflow-y:auto;">
+                <h3 id="modalTitle">新增病虫害</h3>
+                <form id="diseaseForm" onsubmit="saveDisease(event)">
+                    <input type="hidden" id="diseaseId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>中文名称 *</label>
+                            <input type="text" id="nameZh" required>
+                        </div>
+                        <div class="form-group">
+                            <label>老挝语名称</label>
+                            <input type="text" id="nameLo">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>学名</label>
+                            <input type="text" id="scientificName">
+                        </div>
+                        <div class="form-group">
+                            <label>类型 *</label>
+                            <select id="type" required>
+                                <option value="disease">病害</option>
+                                <option value="pest">虫害</option>
+                                <option value="physiological">生理性</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>版本 *</label>
+                            <select id="version" required>
+                                <option value="vegetable">蔬菜版</option>
+                                <option value="fruit">果树版</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>关联作物ID</label>
+                            <input type="number" id="cropId">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>症状描述 (中文)</label>
+                        <textarea id="symptomsZh"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>症状描述 (老挝语)</label>
+                        <textarea id="symptomsLo"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>发病条件 (中文)</label>
+                        <textarea id="conditionsZh"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>严重程度</label>
+                            <select id="severityLevel">
+                                <option value="mild">轻微</option>
+                                <option value="moderate" selected>中等</option>
+                                <option value="severe">严重</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>标签 (逗号分隔)</label>
+                            <input type="text" id="tags">
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+                        <button type="button" class="btn btn-outline" onclick="closeModal()">取消</button>
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/admin.js"></script>
+</body>
+</html>
