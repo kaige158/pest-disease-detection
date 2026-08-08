@@ -1,37 +1,43 @@
-"""AI Provider 工厂 — 根据配置创建对应的Provider实例"""
+"""AI Provider 工厂 — 根据配置创建Provider实例
+
+支持:
+- mock: 开发测试，零成本
+- openai: OpenAI GPT-4o Vision
+- claude: Claude Vision
+- gemini: Google Gemini Vision
+- custom: 国内模型
+"""
+
 from app.core.config import settings
 from app.services.ai_providers.base import AIProvider
 
 
-class ProviderNotFoundError(Exception):
-    """未找到指定的AI Provider"""
-    pass
-
-
 def get_ai_provider() -> AIProvider:
-    """
-    工厂函数：根据配置返回AI Provider实例。
-    切换模型只需修改 .env 中的 AI_PROVIDER 和 AI_API_KEY。
-    具体实现在第四阶段完成。
-    """
+    """工厂函数: 根据 .env 中的 AI_PROVIDER 返回对应实例"""
     provider_name = settings.ai_provider.lower()
 
-    # 第四阶段实现具体的Provider后，取消对应注释
-    if provider_name == "openai":
-        # from app.services.ai_providers.openai import OpenAIProvider
-        # return OpenAIProvider()
-        raise ProviderNotFoundError("OpenAI Provider 尚未实现 (第四阶段)")
+    if provider_name == "mock":
+        from app.services.ai_providers.mock_provider import MockAIProvider
+        return MockAIProvider()
+
+    elif provider_name == "openai":
+        from app.services.ai_providers.openai_provider import OpenAIProvider
+        return OpenAIProvider()
+
     elif provider_name == "claude":
-        # from app.services.ai_providers.claude import ClaudeProvider
-        # return ClaudeProvider()
-        raise ProviderNotFoundError("Claude Provider 尚未实现 (第四阶段)")
+        from app.services.ai_providers.claude_provider import ClaudeProvider
+        return ClaudeProvider()
+
     elif provider_name == "gemini":
-        # from app.services.ai_providers.gemini import GeminiProvider
-        # return GeminiProvider()
-        raise ProviderNotFoundError("Gemini Provider 尚未实现 (第四阶段)")
+        from app.services.ai_providers.gemini_provider import GeminiProvider
+        return GeminiProvider()
+
     elif provider_name == "custom":
-        # from app.services.ai_providers.custom import CustomProvider
-        # return CustomProvider()
-        raise ProviderNotFoundError("Custom Provider 尚未实现 (第四阶段)")
+        from app.services.ai_providers.custom_provider import CustomProvider
+        return CustomProvider()
+
     else:
-        raise ProviderNotFoundError(f"未知的AI Provider: {provider_name}")
+        # 默认使用Mock，不阻塞开发
+        print(f"[WARN] 未知的AI Provider: {provider_name}, 回退到Mock")
+        from app.services.ai_providers.mock_provider import MockAIProvider
+        return MockAIProvider()

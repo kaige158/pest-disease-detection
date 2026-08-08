@@ -26,17 +26,15 @@ class LaosAgriApp extends StatelessWidget {
           elevation: 0,
         ),
       ),
-      // TODO: 后续启用国际化时取消注释
-      // localizationsDelegates: AppLocalizations.localizationsDelegates,
-      // supportedLocales: AppLocalizations.supportedLocales,
-      home: const MainScreen(),
+      home: MainScreen(config: config),
     );
   }
 }
 
 /// Main screen with bottom navigation.
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final AppConfig config;
+  const MainScreen({super.key, required this.config});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -45,12 +43,18 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  final _pages = const [
-    RecognitionPage(),
-    KnowledgeListPage(),
-    ChatPage(),
-    SettingsPage(),
-  ];
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      RecognitionPage(config: widget.config),
+      const KnowledgeListPage(),
+      const ChatPage(),
+      const SettingsPage(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
