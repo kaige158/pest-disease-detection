@@ -42,6 +42,12 @@ uploads/
 *.swo
 *~
 
+# === Maven/Java ===
+target/
+*.class
+*.jar
+*.war
+
 # === Docker ===
 docker-compose.override.yml
 
