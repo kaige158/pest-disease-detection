@@ -54,6 +54,16 @@ class OfflineKnowledge {
     }).toList();
   }
 
+  /// 作物中文→老挝语映射
+  static const Map<String, String> _cropNameMap = {
+    '白菜': 'ຜັກກາດ', '番茄': 'ໝາກເລັ່ນ', '辣椒': 'ໝາກເຜັດ',
+    '黄瓜': 'ໝາກແຕງ', '茄子': 'ໝາກເຂືອ', '生菜': 'ຜັກສະຫຼັດ',
+    '芒果': 'ໝາກມ່ວງ', '香蕉': 'ກ້ວຍ', '荔枝': 'ໝາກລິ້ນຈີ່', '柑橘': 'ໝາກກ້ຽງ',
+  };
+
+  /// 获取作物老挝语名
+  static String cropNameLo(String zh) => _cropNameMap[zh] ?? zh;
+
   // ===== 内置数据 =====
 
   void _loadVegetableData() {
