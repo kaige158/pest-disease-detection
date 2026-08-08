@@ -6,7 +6,7 @@ import jakarta.persistence.*;
  * 防控措施条目表 core.prevention_item
  */
 @Entity
-@Table(name = "prevention_item", schema = "core")
+@Table(name = "prevention_item")
 public class PreventionItem extends BaseEntity {
 
     @Id

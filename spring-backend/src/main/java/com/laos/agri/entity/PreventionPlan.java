@@ -7,7 +7,7 @@ import jakarta.persistence.*;
  * 每种病虫害有多个方案类型: chemical/biological/physical/cultivation
  */
 @Entity
-@Table(name = "prevention_plan", schema = "core")
+@Table(name = "prevention_plan")
 public class PreventionPlan extends BaseEntity {
 
     @Id

@@ -31,7 +31,7 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        default_schema: core
+        # default_schema: core  # 仅PostgreSQL使用，H2不需要
     open-in-view: false  # 性能优化
 
   # Redis

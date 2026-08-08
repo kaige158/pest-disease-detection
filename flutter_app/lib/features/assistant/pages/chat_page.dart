@@ -1,10 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:laos_agri_app/core/config/app_config.dart';
 import 'package:laos_agri_app/core/database/offline_knowledge.dart';
 
 /// AI农业诊断Agent + 离线知识库页面
 class ChatPage extends StatefulWidget {
-  const ChatPage({super.key});
+  final AppConfig config;
+  final String language;
+  const ChatPage({super.key, required this.config, this.language = 'zh'});
 
   @override
   State<ChatPage> createState() => _ChatPageState();

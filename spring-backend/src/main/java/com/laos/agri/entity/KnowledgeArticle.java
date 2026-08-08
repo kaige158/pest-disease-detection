@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
  * 知识库文章表 core.knowledge_article
  */
 @Entity
-@Table(name = "knowledge_article", schema = "core")
+@Table(name = "knowledge_article")
 public class KnowledgeArticle extends BaseEntity {
 
     @Id

@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
  * 用户表 core.user — 支持四角色: 管理员/专家/技术员/农户
  */
 @Entity
-@Table(name = "user", schema = "core")
+@Table(name = "user")
 public class User extends BaseEntity {
 
     @Id
@@ -38,7 +38,7 @@ public class User extends BaseEntity {
     @Column(name = "region_district", length = 100)
     private String regionDistrict;
 
-    @Column(name = "crop_preferences", columnDefinition = "jsonb")
+    @Column(name = "crop_preferences", columnDefinition = "TEXT")
     private String cropPreferences = "[]";  // ["白菜","番茄"]
 
     @Enumerated(EnumType.STRING)

@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
  * 每张图片都是科研数据，记录完整采集元数据
  */
 @Entity
-@Table(name = "disease_image", schema = "core")
+@Table(name = "disease_image")
 public class DiseaseImage extends BaseEntity {
 
     @Id

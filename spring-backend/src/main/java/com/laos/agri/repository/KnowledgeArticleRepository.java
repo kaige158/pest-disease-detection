@@ -13,7 +13,7 @@ public interface KnowledgeArticleRepository extends JpaRepository<KnowledgeArtic
     List<KnowledgeArticle> findByCropIdAndIsPublishedTrue(Integer cropId);
     List<KnowledgeArticle> findByDiseaseIdAndIsPublishedTrue(Integer diseaseId);
 
-    @Query(value = "SELECT * FROM core.knowledge_article WHERE version = :version AND is_published = true " +
+    @Query(value = "SELECT * FROM knowledge_article WHERE version = :version AND is_published = true " +
            "AND to_tsvector('simple', COALESCE(title_zh,'') || ' ' || COALESCE(title_lo,'') || ' ' || " +
            "COALESCE(content_zh,'') || ' ' || COALESCE(tags,'')) @@ plainto_tsquery('simple', :query)",
            nativeQuery = true)

@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
  * 病虫害字典表 core.disease — 核心知识资产
  */
 @Entity
-@Table(name = "disease", schema = "core")
+@Table(name = "disease")
 public class Disease extends BaseEntity {
 
     @Id

@@ -6,7 +6,7 @@ import jakarta.persistence.*;
  * 作物表 core.crop
  */
 @Entity
-@Table(name = "crop", schema = "core")
+@Table(name = "crop")
 public class Crop extends BaseEntity {
 
     @Id

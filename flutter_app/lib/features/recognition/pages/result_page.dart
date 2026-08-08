@@ -8,13 +8,17 @@ class ResultPage extends StatelessWidget {
   final Map<String, dynamic> resultData;
   final AppConfig config;
   final String imagePath;
+  final String language;
 
   const ResultPage({
     super.key,
     required this.resultData,
     required this.config,
     required this.imagePath,
+    this.language = 'zh',
   });
+
+  String t(String zh, String lo) => language == 'lo' ? lo : zh;
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +43,7 @@ class ResultPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('识别结果'),
+        title: Text(t('识别结果', 'ຜົນການກວດສອບ')),
         backgroundColor: Color(config.primaryColor),
         foregroundColor: Colors.white,
       ),

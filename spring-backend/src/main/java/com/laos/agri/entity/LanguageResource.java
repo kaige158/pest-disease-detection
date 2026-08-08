@@ -7,7 +7,7 @@ import jakarta.persistence.*;
  * 支持中文/老挝语/英语/泰语/越南语扩展
  */
 @Entity
-@Table(name = "language_resource", schema = "core",
+@Table(name = "language_resource",
        uniqueConstraints = @UniqueConstraint(columnNames = {"resource_key", "module"}))
 public class LanguageResource extends BaseEntity {
 

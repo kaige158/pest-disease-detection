@@ -14,7 +14,7 @@ public interface DiseaseImageRepository extends JpaRepository<DiseaseImage, Long
     @Query("SELECT di FROM DiseaseImage di WHERE di.isUsable = true AND di.dataGrade IN ('S','A')")
     List<DiseaseImage> findTrainingQualityImages();
 
-    @Query(value = "SELECT COUNT(*) FROM core.disease_image WHERE version = :version AND is_usable = true",
+    @Query(value = "SELECT COUNT(*) FROM disease_image WHERE version = :version AND is_usable = true",
            nativeQuery = true)
     long countUsableByVersion(@Param("version") String version);
 }

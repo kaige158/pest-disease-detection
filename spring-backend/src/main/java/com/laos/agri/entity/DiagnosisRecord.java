@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
  * 诊断记录表 core.diagnosis_record — 含用户反馈+专家审核字段
  */
 @Entity
-@Table(name = "diagnosis_record", schema = "core")
+@Table(name = "diagnosis_record")
 public class DiagnosisRecord extends BaseEntity {
 
     @Id
@@ -42,10 +42,10 @@ public class DiagnosisRecord extends BaseEntity {
     private String status = "pending";  // pending/processing/completed/failed/reviewed
 
     // AI结果
-    @Column(name = "ai_raw_response", columnDefinition = "jsonb")
+    @Column(name = "ai_raw_response", columnDefinition = "TEXT")
     private String aiRawResponse;
 
-    @Column(name = "parsed_results", columnDefinition = "jsonb")
+    @Column(name = "parsed_results", columnDefinition = "TEXT")
     private String parsedResults;
 
     // 最佳匹配
@@ -85,7 +85,7 @@ public class DiagnosisRecord extends BaseEntity {
     private LocalDateTime reviewedAt;
 
     // 防控方案快照
-    @Column(name = "prevention_json", columnDefinition = "jsonb")
+    @Column(name = "prevention_json", columnDefinition = "TEXT")
     private String preventionJson;
 
     // 采集元数据
@@ -98,7 +98,7 @@ public class DiagnosisRecord extends BaseEntity {
     @Column(name = "location_name", length = 300)
     private String locationName;
 
-    @Column(name = "weather_info", columnDefinition = "jsonb")
+    @Column(name = "weather_info", columnDefinition = "TEXT")
     private String weatherInfo;
 
     @Column(name = "growth_stage", length = 50)

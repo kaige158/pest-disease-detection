@@ -11,7 +11,7 @@ public interface DiseaseRepository extends JpaRepository<Disease, Integer> {
     List<Disease> findByCropIdAndIsActiveTrue(Integer cropId);
     List<Disease> findByTypeAndVersionAndIsActiveTrue(String type, String version);
 
-    @Query(value = "SELECT * FROM core.disease WHERE version = :version AND is_active = true " +
+    @Query(value = "SELECT * FROM disease WHERE version = :version AND is_active = true " +
            "AND to_tsvector('simple', COALESCE(name_zh,'') || ' ' || COALESCE(name_lo,'') || ' ' || " +
            "COALESCE(symptoms_zh,'') || ' ' || COALESCE(tags,'')) @@ plainto_tsquery('simple', :query)",
            nativeQuery = true)

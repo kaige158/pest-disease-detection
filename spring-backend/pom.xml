@@ -85,11 +85,10 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- H2 for dev/test -->
+        <!-- H2 for demo/dev -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>test</scope>
         </dependency>
 
         <!-- Redis -->

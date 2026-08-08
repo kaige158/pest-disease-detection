@@ -1,0 +1,30 @@
+# ==========================================
+# 演示模式 — 使用H2内存数据库，无需Docker/PostgreSQL
+# 启动: mvn spring-boot:run -Dspring-boot.run.profiles=demo
+# ==========================================
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:laos_agri_demo;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        default_schema: PUBLIC
+    database-platform: org.hibernate.dialect.H2Dialect
+
+  sql:
+    init:
+      mode: never
