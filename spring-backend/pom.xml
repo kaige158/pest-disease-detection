@@ -23,6 +23,24 @@
         <jjwt.version>0.12.5</jjwt.version>
     </properties>
 
+    <!-- 使用阿里云Maven镜像加速依赖下载 -->
+    <repositories>
+        <repository>
+            <id>aliyun-maven</id>
+            <url>https://maven.aliyun.com/repository/public</url>
+            <releases><enabled>true</enabled></releases>
+            <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>aliyun-maven-plugin</id>
+            <url>https://maven.aliyun.com/repository/public</url>
+            <releases><enabled>true</enabled></releases>
+            <snapshots><enabled>false</enabled></snapshots>
+        </pluginRepository>
+    </pluginRepositories>
+
     <dependencies>
         <!-- Spring Boot Web -->
         <dependency>
