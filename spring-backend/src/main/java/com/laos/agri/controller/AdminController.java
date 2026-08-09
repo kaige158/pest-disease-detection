@@ -5,8 +5,11 @@ import com.laos.agri.repository.DiagnosisRecordRepository;
 import com.laos.agri.repository.DiseaseImageRepository;
 import com.laos.agri.repository.DiseaseRepository;
 import com.laos.agri.service.EvaluationService;
+import com.laos.agri.service.TrainingDataService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
 
 import java.util.Map;
 
@@ -21,15 +24,18 @@ public class AdminController {
     private final DiseaseRepository diseaseRepo;
     private final DiseaseImageRepository imageRepo;
     private final EvaluationService evaluationService;
+    private final TrainingDataService trainingDataService;
 
     public AdminController(DiagnosisRecordRepository diagnosisRepo,
                            DiseaseRepository diseaseRepo,
                            DiseaseImageRepository imageRepo,
-                           EvaluationService evaluationService) {
+                           EvaluationService evaluationService,
+                           TrainingDataService trainingDataService) {
         this.diagnosisRepo = diagnosisRepo;
         this.diseaseRepo = diseaseRepo;
         this.imageRepo = imageRepo;
         this.evaluationService = evaluationService;
+        this.trainingDataService = trainingDataService;
     }
 
     /** 获取待审核诊断列表 */
@@ -54,7 +60,7 @@ public class AdminController {
         return ApiResponse.ok(record);
     }
 
-    /** 专家审核诊断结果 */
+    /** 专家审核诊断结果 — Sprint 11: 审核通过→training_ready */
     @PostMapping("/review/{diagnosisId}")
     public ApiResponse<?> reviewDiagnosis(
             @PathVariable Long diagnosisId,
@@ -64,11 +70,12 @@ public class AdminController {
                 .orElseThrow(() -> new RuntimeException("诊断记录不存在"));
 
         String action = (String) review.getOrDefault("action", "verified");
+        Long reviewerId = toLong(review.get("reviewer_id"));
 
         record.setExpertReviewed(true);
         record.setExpertAction(action);
         record.setExpertNotes((String) review.getOrDefault("notes", ""));
-        record.setReviewedBy(toLong(review.get("reviewer_id")));
+        record.setReviewedBy(reviewerId);
         record.setReviewedAt(java.time.LocalDateTime.now());
 
         if ("corrected".equals(action)) {
@@ -78,7 +85,56 @@ public class AdminController {
         record.setStatus("reviewed");
         diagnosisRepo.save(record);
 
-        return ApiResponse.ok("审核完成");
+        // Sprint 11: 专家审核通过 → 标记训练就绪 ⭐
+        if ("verified".equals(action) || "corrected".equals(action)) {
+            String correctLabel = (String) review.getOrDefault(
+                "correct_label",
+                record.getParsedResults() != null ?
+                    extractField(record.getParsedResults(), "disease_name_zh") : ""
+            );
+            BigDecimal qualityScore = review.get("image_quality_score") instanceof Number ?
+                BigDecimal.valueOf(((Number) review.get("image_quality_score")).doubleValue()) : null;
+
+            trainingDataService.approveForTraining(
+                diagnosisId,
+                reviewerId,
+                correctLabel,
+                (String) review.getOrDefault("correct_label_lo", ""),
+                (String) review.getOrDefault("notes", ""),
+                qualityScore
+            );
+        }
+
+        return ApiResponse.ok(Map.of(
+            "message", "审核完成",
+            "training_ready", "verified".equals(action) || "corrected".equals(action)
+        ));
+    }
+
+    /** 训练数据统计 — Sprint 11 */
+    @GetMapping("/training/stats")
+    public ApiResponse<?> getTrainingStats() {
+        return ApiResponse.ok(trainingDataService.getStats());
+    }
+
+    /** 导出训练就绪数据 — Sprint 11 */
+    @PostMapping("/training/export")
+    public ApiResponse<?> exportTrainingData(@RequestBody Map<String, String> request) {
+        String format = request.getOrDefault("format", "yolo");
+        return ApiResponse.ok(trainingDataService.exportTrainingReady(format));
+    }
+
+    private String extractField(String json, String field) {
+        if (json == null) return "";
+        try {
+            int idx = json.indexOf("\"" + field + "\"");
+            if (idx >= 0) {
+                int start = json.indexOf("\"", idx + field.length() + 3);
+                int end = json.indexOf("\"", start + 1);
+                if (start >= 0 && end > start) return json.substring(start + 1, end);
+            }
+        } catch (Exception ignored) {}
+        return "";
     }
 
     /** 用户反馈的不正确记录列表（需要优先审核） */

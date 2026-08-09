@@ -1,0 +1,2 @@
+id,image,crop_zh,crop_lo,disease_zh,disease_lo,disease_type,plant_part,severity,country,location,gps_lat,gps_lng,growth_stage,season,ai_prediction,ai_confidence,ai_model,expert_label,expert_label_lo,expert_confirm,expert_id,expert_notes,training_ready,image_quality_score,diagnosis_record_id,reviewed_at
+LA_TOMATO_2026_001,la_tomato_late_blight_001.jpg,番茄,ໝາກເລັ່ນ,番茄晚疫病,ພະຍາດໃບໄໝ້ໝາກເລັ່ນ,disease,leaf,moderate,LA,万象,17.9757,102.6331,fruiting,rain,番茄晚疫病,0.92,gemini-3.6-flash,番茄晚疫病,ພະຍາດໃບໄໝ້ໝາກເລັ່ນ,true,1,典型晚疫病症状,true,85.0,,2026-08-09T00:00:00Z

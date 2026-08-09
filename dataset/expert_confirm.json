@@ -1,0 +1,81 @@
+{
+  "_spec": "农业AI训练数据 — 专家确认标准格式 v2.0",
+  "_version": "2.0",
+  "_created": "2026-08-09",
+  "_principle": "只有 expert_confirm=true 的图片才能进入训练集",
+
+  "_field_spec": {
+    "id": "唯一标识，如 LA_TOMATO_2026_001",
+    "image": "图片文件名，相对于 images/ 目录",
+    "crop_zh": "作物中文名",
+    "crop_lo": "作物老挝语名",
+    "disease_zh": "病虫害中文名（专家确认的最终标签）",
+    "disease_lo": "病虫害老挝语名",
+    "disease_type": "disease | pest | physiological",
+    "plant_part": "leaf | fruit | stem | root | whole",
+    "severity": "mild | moderate | severe",
+    "country": "LA (老挝)",
+    "location": "采集地点（省/市）",
+    "gps_lat": "纬度 (decimal)",
+    "gps_lng": "经度 (decimal)",
+    "growth_stage": "seedling | vegetative | flowering | fruiting | harvesting",
+    "season": "dry | rain",
+    "ai_prediction": "AI原始预测结果",
+    "ai_confidence": "AI置信度 0.0-1.0",
+    "ai_model": "AI模型名称 (gemini-3.6-flash等)",
+    "expert_label": "专家标注的正确病虫害名",
+    "expert_label_lo": "专家标注的老挝语名",
+    "expert_confirm": "专家是否确认此标签正确 (true/false)",
+    "expert_id": "审核专家ID",
+    "expert_notes": "专家备注",
+    "training_ready": "是否可用于模型训练 (需专家确认+图片质量达标)",
+    "image_quality_score": "图片质量评分 0-100",
+    "diagnosis_record_id": "关联的 diagnosis_record ID",
+    "reviewed_at": "审核时间 ISO8601"
+  },
+
+  "_export_filter": {
+    "training_ready_only": {
+      "expert_confirm": true,
+      "training_ready": true,
+      "image_quality_score": {"min": 50}
+    },
+    "recommended_split": {
+      "train": "70%",
+      "val": "15%",
+      "test": "15%"
+    }
+  },
+
+  "records": [
+    {
+      "id": "LA_TOMATO_2026_001",
+      "image": "la_tomato_late_blight_001.jpg",
+      "crop_zh": "番茄",
+      "crop_lo": "ໝາກເລັ່ນ",
+      "disease_zh": "番茄晚疫病",
+      "disease_lo": "ພະຍາດໃບໄໝ້ໝາກເລັ່ນ",
+      "disease_type": "disease",
+      "plant_part": "leaf",
+      "severity": "moderate",
+      "country": "LA",
+      "location": "万象",
+      "gps_lat": 17.9757,
+      "gps_lng": 102.6331,
+      "growth_stage": "fruiting",
+      "season": "rain",
+      "ai_prediction": "番茄晚疫病",
+      "ai_confidence": 0.92,
+      "ai_model": "gemini-3.6-flash",
+      "expert_label": "番茄晚疫病",
+      "expert_label_lo": "ພະຍາດໃບໄໝ້ໝາກເລັ່ນ",
+      "expert_confirm": true,
+      "expert_id": 1,
+      "expert_notes": "典型晚疫病症状，病斑水渍状",
+      "training_ready": true,
+      "image_quality_score": 85.0,
+      "diagnosis_record_id": null,
+      "reviewed_at": null
+    }
+  ]
+}
