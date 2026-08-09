@@ -10,6 +10,7 @@ public interface DiseaseRepository extends JpaRepository<Disease, Integer> {
     List<Disease> findByVersionAndIsActiveTrue(String version);
     List<Disease> findByCropIdAndIsActiveTrue(Integer cropId);
     List<Disease> findByTypeAndVersionAndIsActiveTrue(String type, String version);
+    List<Disease> findByNameZhContaining(String nameZh);
 
     @Query(value = "SELECT * FROM disease WHERE version = :version AND is_active = true " +
            "AND to_tsvector('simple', COALESCE(name_zh,'') || ' ' || COALESCE(name_lo,'') || ' ' || " +

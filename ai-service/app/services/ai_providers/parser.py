@@ -88,17 +88,24 @@ class AIResponseParser:
 
             confidence = float(item.get("confidence", 0.5))
 
-            # 防控方案
+            # 防控方案（兼容 dict 和 string 两种格式）
+            def _to_item(m):
+                """将dict或str转为PreventionItem"""
+                if isinstance(m, dict):
+                    return PreventionItem(
+                        method_zh=m.get("name_zh", m.get("method_zh", m.get("name", ""))),
+                        details_zh=m.get("usage_zh", m.get("details_zh", m.get("usage", ""))),
+                    )
+                elif isinstance(m, str):
+                    return PreventionItem(method_zh=m, details_zh="")
+                return PreventionItem(method_zh=str(m), details_zh="")
+
             prevention = item.get("prevention_plan") or item.get("prevention") or {}
             plan = PreventionPlan(
-                chemical=[PreventionItem(method_zh=m.get("name_zh", m.get("method_zh", "")), details_zh=m.get("usage_zh", m.get("details_zh", "")))
-                          for m in prevention.get("chemical", prevention.get("chemical_zh", []))],
-                biological=[PreventionItem(method_zh=m.get("name_zh", m.get("method_zh", "")), details_zh=m.get("usage_zh", m.get("details_zh", "")))
-                            for m in prevention.get("biological", prevention.get("biological_zh", []))],
-                physical=[PreventionItem(method_zh=m.get("name_zh", m.get("method_zh", "")), details_zh=m.get("usage_zh", m.get("details_zh", "")))
-                          for m in prevention.get("physical", prevention.get("physical_zh", []))],
-                cultivation=[PreventionItem(method_zh=m.get("name_zh", m.get("method_zh", "")), details_zh=m.get("usage_zh", m.get("details_zh", "")))
-                             for m in prevention.get("cultivation", prevention.get("cultivation_zh", []))],
+                chemical=[_to_item(m) for m in prevention.get("chemical", prevention.get("chemical_zh", []))],
+                biological=[_to_item(m) for m in prevention.get("biological", prevention.get("biological_zh", []))],
+                physical=[_to_item(m) for m in prevention.get("physical", prevention.get("physical_zh", []))],
+                cultivation=[_to_item(m) for m in prevention.get("cultivation", prevention.get("cultivation_zh", []))],
             )
 
             result = DiagnosisResult(

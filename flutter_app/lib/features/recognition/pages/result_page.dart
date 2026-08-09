@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:laos_agri_app/core/config/app_config.dart';
 
@@ -19,6 +21,48 @@ class ResultPage extends StatelessWidget {
   });
 
   String t(String zh, String lo) => language == 'lo' ? lo : zh;
+
+  /// 提交用户反馈到后端 API
+  Future<void> _submitFeedback(BuildContext context, String feedback) async {
+    final taskId = resultData['task_id'] ?? '';
+    if (taskId.toString().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('任务ID缺失，无法提交反馈')),
+      );
+      return;
+    }
+
+    try {
+      final dio = Dio(BaseOptions(
+        connectTimeout: const Duration(seconds: 5),
+        receiveTimeout: const Duration(seconds: 5),
+      ));
+      await dio.post(
+        'http://10.0.2.2:8080/api/v1/recognition/$taskId/feedback',
+        data: jsonEncode({
+          'feedback': feedback,
+          'note': feedback == 'confirmed' ? '用户确认结果正确' : '用户认为结果不正确',
+        }),
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(feedback == 'confirmed' ? '感谢反馈！结果已记录' : '已记录，将提交专家复核'),
+            backgroundColor: feedback == 'confirmed' ? Colors.green : Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('反馈提交失败: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -186,18 +230,14 @@ class ResultPage extends StatelessWidget {
               ),
             ),
 
-            // 反馈按钮
+            // 反馈按钮 — Sprint 10.2: 真实API调用
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
               child: Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('感谢反馈！结果已记录')),
-                        );
-                      },
+                      onPressed: () => _submitFeedback(context, 'confirmed'),
                       icon: const Icon(Icons.thumb_up, color: Colors.green),
                       label: const Text('结果正确'),
                     ),
@@ -205,11 +245,7 @@ class ResultPage extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('已记录，将提交专家复核')),
-                        );
-                      },
+                      onPressed: () => _submitFeedback(context, 'disputed'),
                       icon: const Icon(Icons.thumb_down, color: Colors.red),
                       label: const Text('结果不正确'),
                     ),
