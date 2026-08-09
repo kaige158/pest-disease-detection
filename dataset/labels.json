@@ -1,0 +1,40 @@
+{
+  "_description": "农业病虫害测试集标签 — 每张图片对应一个专家标注的正确病害",
+  "_version": "1.0",
+  "_created": "2026-08-09",
+  "_usage": "将此文件放在 dataset/ 目录下，图片放在 dataset/raw_images/ 子目录",
+  "_schema": {
+    "id": "唯一标识，如 tomato_001",
+    "image": "图片文件名，相对于 raw_images/",
+    "crop": "作物名(中文)",
+    "crop_lo": "作物名(老挝语)",
+    "expert_label": "专家标注的正确病害名(中文)",
+    "expert_label_lo": "专家标注的正确病害名(老挝语)",
+    "disease_type": "disease | pest | physiological",
+    "plant_part": "leaf | fruit | stem | root | whole",
+    "location": "采集地点",
+    "season": "dry | rain",
+    "notes": "备注",
+    "ai_result": "AI预测结果(评估时自动填充)",
+    "ai_confidence": "AI置信度(评估时自动填充)",
+    "is_correct": "AI是否正确(评估时自动填充)"
+  },
+  "test_cases": [
+    {
+      "id": "example_001",
+      "image": "example_001.jpg",
+      "crop": "番茄",
+      "crop_lo": "ໝາກເລັ່ນ",
+      "expert_label": "番茄晚疫病",
+      "expert_label_lo": "ພະຍາດໃບໄໝ້ຊ້າ",
+      "disease_type": "disease",
+      "plant_part": "leaf",
+      "location": "万象",
+      "season": "rain",
+      "notes": "示例条目，替换为真实数据",
+      "ai_result": null,
+      "ai_confidence": null,
+      "is_correct": null
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+id,image,crop,crop_lo,expert_label,expert_label_lo,disease_type,plant_part,location,season,notes
+example_001,example_001.jpg,番茄,ໝາກເລັ່ນ,番茄晚疫病,ພະຍາດໃບໄໝ້ຊ້າ,disease,leaf,万象,rain,示例条目

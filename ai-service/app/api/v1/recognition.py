@@ -1,4 +1,7 @@
-"""AI服务识别API — 接收图片，调用Provider，返回标准化结果"""
+"""AI服务识别API — 接收图片，调用Provider，返回标准化结果
+
+Sprint 10.3 升级: 图片质量前置检测 + 置信度策略管理
+"""
 import base64
 import io
 import time
@@ -8,6 +11,8 @@ from pydantic import BaseModel
 
 from app.services.ai_providers.factory import get_ai_provider
 from app.services.ai_providers.parser import AIResponseParser
+from app.services.quality.image_quality_checker import image_quality_checker, QualityGrade
+from app.services.quality.confidence_manager import confidence_manager
 
 router = APIRouter()
 
@@ -42,6 +47,21 @@ async def identify_disease(request: IdentifyRequest):
     except Exception:
         raise HTTPException(status_code=400, detail="图片Base64编码无效")
 
+    # 1.5 图片质量检测 (Sprint 10.3)
+    quality = image_quality_checker.check(image_bytes)
+    if not quality.is_acceptable:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "图片质量不合格",
+                "issues": quality.issues,
+                "suggestions_zh": quality.suggestions_zh,
+                "suggestions_lo": quality.suggestions_lo,
+                "score": quality.score,
+                "grade": quality.grade.value,
+            }
+        )
+
     # 2. 构建作物信息
     crop_info = None
     if request.crop_name:
@@ -75,6 +95,26 @@ async def identify_disease(request: IdentifyRequest):
     response_data = top_result.to_dict()
     response_data["task_id"] = f"rec_{int(time.time())}_{hash(request.image) % 10000:04d}"
     response_data["total_time_ms"] = elapsed_ms
+
+    # 5.5 置信度策略管理 (Sprint 10.3)
+    decision = confidence_manager.decide(
+        confidence=top_result.confidence,
+        top_result_name=top_result.disease_name_zh,
+        alternatives=[r.disease_name_zh for r in results[1:4]] if len(results) > 1 else [],
+        language=request.language,
+    )
+    response_data = confidence_manager.enrich_api_response(response_data, decision)
+
+    # 质量报告（用于调试和数据积累）
+    response_data["image_quality"] = {
+        "score": quality.score,
+        "grade": quality.grade.value,
+        "sharpness": quality.sharpness_score,
+        "brightness": quality.brightness_score,
+        "green_ratio": quality.green_ratio,
+        "width": quality.width,
+        "height": quality.height,
+    }
 
     return response_data
 
