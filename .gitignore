@@ -35,6 +35,9 @@ env/
 uploads/
 *.log
 
+# === APK 交付产物（二进制不入库） ===
+release/
+
 # === IDE ===
 .vscode/
 .idea/
