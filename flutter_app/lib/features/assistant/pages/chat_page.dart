@@ -144,15 +144,24 @@ class _ChatPageState extends State<ChatPage> {
   Widget _diseaseCard(Map<String, dynamic> item) {
     final isPest = item['type'] == 'pest';
     final name = (_l == 'lo' && item['name_lo'] != null && (item['name_lo'] as String).isNotEmpty) ? item['name_lo'] : item['name_zh'] ?? '';
+    final cropName = (_l == 'lo' && item['crop_name_lo'] != null && (item['crop_name_lo'] as String).isNotEmpty)
+        ? item['crop_name_lo'] : item['crop_name_zh'] ?? '';
+    // 老挝语下优先取 _lo 字段，缺省回退中文
+    final symptoms = (_l == 'lo' && item['symptoms_lo'] != null && (item['symptoms_lo'] as String).isNotEmpty)
+        ? item['symptoms_lo'] : item['symptoms_zh'];
+    final conditions = (_l == 'lo' && item['conditions_lo'] != null && (item['conditions_lo'] as String).isNotEmpty)
+        ? item['conditions_lo'] : item['conditions_zh'];
+    final prevention = (_l == 'lo' && item['prevention_lo'] != null && (item['prevention_lo'] as String).isNotEmpty)
+        ? item['prevention_lo'] : item['prevention_zh'];
     return Card(margin: const EdgeInsets.only(bottom: 8), child: ExpansionTile(
       leading: Icon(isPest ? Icons.pest_control : Icons.bug_report, color: isPest ? Colors.orange : Colors.red),
       title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-      subtitle: Text('${item['crop_name_zh'] ?? ""} | ${t("病害", "ພະຍາດ")}', style: const TextStyle(fontSize: 12)),
+      subtitle: Text('$cropName | ${t("病害", "ພະຍາດ")}', style: const TextStyle(fontSize: 12)),
       children: [Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 16), child: Column(
         crossAxisAlignment: CrossAxisAlignment.start, children: [
-        if (item['symptoms_zh'] != null) _row(t('症状', 'ອາການ'), item['symptoms_zh']),
-        if (item['conditions_zh'] != null) _row(t('条件', 'ເງື່ອນໄຂ'), item['conditions_zh']),
-        if (item['prevention_zh'] != null) _row(t('防治', 'ປ້ອງກັນ'), item['prevention_zh']),
+        if (symptoms != null) _row(t('症状', 'ອາການ'), symptoms),
+        if (conditions != null) _row(t('条件', 'ເງື່ອນໄຂ'), conditions),
+        if (prevention != null) _row(t('防治', 'ປ້ອງກັນ'), prevention),
       ]))],
     ));
   }

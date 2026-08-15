@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:laos_agri_app/core/config/app_config.dart';
 import 'package:laos_agri_app/features/home/pages/notifications_page.dart';
 import 'package:laos_agri_app/features/knowledge/pages/content_detail_page.dart';
+import 'package:laos_agri_app/features/knowledge/pages/knowledge_list_page.dart';
 import 'package:laos_agri_app/shared/widgets/scale_tap.dart';
 
 /// 首页仪表盘 — 参照「AI植保云鉴」风格设计
@@ -268,7 +269,7 @@ class HomePage extends StatelessWidget {
                     ),
                   ),
                   // 右侧吉祥物
-                  _buildMascot(isVeg),
+                  _buildMascot(context, isVeg),
                 ],
               ),
             ),
@@ -278,41 +279,46 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildMascot(bool isVeg) {
-    return Container(
-      width: 115,
-      height: 130,
-      alignment: Alignment.center,
-      child: Stack(
+  Widget _buildMascot(BuildContext context, bool isVeg) {
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => KnowledgeListPage(config: config, language: language, startWithSearch: true),
+      )),
+      child: Container(
+        width: 115,
+        height: 130,
         alignment: Alignment.center,
-        children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.25),
-              shape: BoxShape.circle,
-            ),
-          ),
-          Text(
-            isVeg ? '🥬' : '🥭',
-            style: const TextStyle(fontSize: 68),
-          ),
-          // 放大镜装饰
-          Positioned(
-            right: 4,
-            bottom: 10,
-            child: Container(
-              padding: const EdgeInsets.all(5),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 100,
+              height: 100,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Colors.white.withValues(alpha: 0.25),
                 shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
               ),
-              child: const Icon(Icons.search, size: 16, color: Color(0xFF2E7D32)),
             ),
-          ),
-        ],
+            Text(
+              isVeg ? '🥬' : '🥭',
+              style: const TextStyle(fontSize: 68),
+            ),
+            // 放大镜 — 点击跳转搜索页
+            Positioned(
+              right: 4,
+              bottom: 10,
+              child: Container(
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                ),
+                child: const Icon(Icons.search, size: 16, color: Color(0xFF2E7D32)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

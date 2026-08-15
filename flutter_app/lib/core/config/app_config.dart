@@ -20,7 +20,7 @@ class AppConfig {
   /// Vegetable version config.
   static const vegetable = AppConfig(
     flavor: AppFlavor.vegetable,
-    appName: '老挝蔬菜病虫害防控',
+    appName: '老挝蔬菜病虫害识别与防控',
     appId: 'com.laos.agri.veggie',
     version: 'vegetable',
     primaryColor: 0xFF4CAF50, // Green
@@ -29,7 +29,7 @@ class AppConfig {
   /// Fruit version config.
   static const fruit = AppConfig(
     flavor: AppFlavor.fruit,
-    appName: '老挝果树病虫害防控',
+    appName: '老挝果树病虫害识别与防控',
     appId: 'com.laos.agri.fruit',
     version: 'fruit',
     primaryColor: 0xFFFF9800, // Orange

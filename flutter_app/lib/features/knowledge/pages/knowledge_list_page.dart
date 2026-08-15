@@ -6,7 +6,8 @@ import 'package:laos_agri_app/core/database/offline_knowledge.dart';
 class KnowledgeListPage extends StatefulWidget {
   final AppConfig config;
   final String language;
-  const KnowledgeListPage({super.key, required this.config, this.language = 'zh'});
+  final bool startWithSearch;
+  const KnowledgeListPage({super.key, required this.config, this.language = 'zh', this.startWithSearch = false});
 
   @override
   State<KnowledgeListPage> createState() => _KnowledgeListPageState();
@@ -28,6 +29,7 @@ class _KnowledgeListPageState extends State<KnowledgeListPage> {
     super.initState();
     _offline.loadBuiltinData();
     _cropNames = _offline.getCropNames(widget.config.version);
+    _showSearch = widget.startWithSearch;
   }
 
   void _search(String q) {
@@ -177,7 +179,9 @@ class _KnowledgeListPageState extends State<KnowledgeListPage> {
         ],
         if (item['conditions_zh'] != null) ...[
           _label(t('发病条件', 'ເງື່ອນໄຂ')),
-          Text(item['conditions_zh'], style: const TextStyle(fontSize: 13, height: 1.5)),
+          Text(_l == 'lo' && item['conditions_lo'] != null && (item['conditions_lo'] as String).isNotEmpty
+              ? item['conditions_lo'] : item['conditions_zh'],
+              style: const TextStyle(fontSize: 13, height: 1.5)),
           const SizedBox(height: 10),
         ],
         if (item['prevention_zh'] != null) ...[
