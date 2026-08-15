@@ -32,6 +32,19 @@ class ResultPage extends StatelessWidget {
       return;
     }
 
+    // 演示模式：本地提示，不请求后端
+    if (taskId == 'demo') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(feedback == 'confirmed'
+              ? t('感谢反馈！（演示模式）', 'ຂອບໃຈ！(ໂໝດສາທິດ)')
+              : t('已记录，将提交专家复核（演示模式）', 'ບັນທຶກແລ້ວ (ໂໝດສາທິດ)')),
+          backgroundColor: feedback == 'confirmed' ? Colors.green : Colors.orange,
+        ),
+      );
+      return;
+    }
+
     try {
       final dio = Dio(BaseOptions(
         connectTimeout: const Duration(seconds: 5),

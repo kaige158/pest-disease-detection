@@ -22,6 +22,10 @@ class _RecognitionPageState extends State<RecognitionPage> {
   XFile? _selectedImage;
   bool _isUploading = false;
 
+  /// 演示模式 — 编译时通过 --dart-define=DEMO_MODE=true 开启。
+  /// 开启后识别不请求后端，直接返回演示结果（用于无服务器的UI演示APK）。
+  static const bool _demoMode = bool.fromEnvironment('DEMO_MODE', defaultValue: false);
+
   String get _l => widget.language;
   String t(String zh, String lo) => _l == 'lo' ? lo : zh;
 
@@ -46,6 +50,22 @@ class _RecognitionPageState extends State<RecognitionPage> {
   Future<void> _uploadAndIdentify() async {
     if (_selectedImage == null) return;
     setState(() => _isUploading = true);
+
+    // 演示模式：模拟AI分析耗时后返回演示结果，不请求后端
+    if (_demoMode) {
+      await Future.delayed(const Duration(milliseconds: 1400));
+      if (!mounted) return;
+      setState(() => _isUploading = false);
+      Navigator.push(context, MaterialPageRoute(
+        builder: (_) => ResultPage(
+          resultData: _buildDemoResult(),
+          config: widget.config,
+          imagePath: _selectedImage!.path,
+          language: _l,
+        ),
+      ));
+      return;
+    }
 
     try {
       final bytes = await _selectedImage!.readAsBytes();
@@ -78,6 +98,56 @@ class _RecognitionPageState extends State<RecognitionPage> {
   void _showError(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red[700]));
+  }
+
+  /// 演示模式识别结果 — 按版本返回一个真实感的示例（标注"演示"）
+  Map<String, dynamic> _buildDemoResult() {
+    final isVeg = widget.config.version == 'vegetable';
+    return {
+      'task_id': 'demo',
+      'results': isVeg
+          ? {
+              'disease_name_zh': '番茄晚疫病（演示）',
+              'disease_name_lo': 'ພະຍາດໃບໄໝ້ໝາກເລັ່ນ',
+              'confidence': 0.92,
+              'symptoms_zh': '叶片出现暗绿色水渍状病斑，边缘不清晰，湿度大时背面产生白色霉层；'
+                  '果实产生褐色硬质病斑，迅速扩大导致腐烂。',
+              'symptoms_lo': 'ໃບມີຈຸດສີຂຽວເຂັ້ມຄ້າຍນ້ຳ ດ້ານຫຼັງມີເຊື້ອຣາສີຂາວ.',
+              'conditions_zh': '低温高湿、连续阴雨、昼夜温差大时最易流行。',
+              'severity': 'severe',
+              'need_expert_review': false,
+              'prevention': {
+                'chemical': [
+                  {'method_zh': '发病初期喷施代森锰锌', 'details_zh': '每隔7～10天一次，连续2～3次，注意轮换用药。'},
+                  {'method_zh': '严重时选用霜脲·锰锌', 'details_zh': '严格遵守安全间隔期，采收前禁用。'},
+                ],
+                'cultivation': [
+                  {'method_zh': '及时排水、加强通风', 'details_zh': '降低田间湿度，摘除病叶病果并集中销毁。'},
+                  {'method_zh': '合理密植', 'details_zh': '避免植株过密，保持通风透光。'},
+                ],
+              },
+            }
+          : {
+              'disease_name_zh': '芒果炭疽病（演示）',
+              'disease_name_lo': 'ພະຍາດແອນແທຣກໂນສໝາກມ່ວງ',
+              'confidence': 0.89,
+              'symptoms_zh': '叶片、花穗和果实出现黑褐色病斑，果实近成熟时病斑扩大凹陷，'
+                  '潮湿时病斑上产生粉红色黏质孢子堆。',
+              'symptoms_lo': 'ໃບ ດອກ ແລະ ໝາກ ມີຈຸດສີດຳ ເມື່ອຊຸ່ມມີສະປໍສີບົວ.',
+              'conditions_zh': '高温多雨、果园郁闭、通风不良时发病重。',
+              'severity': 'moderate',
+              'need_expert_review': false,
+              'prevention': {
+                'chemical': [
+                  {'method_zh': '花期及幼果期喷施咪鲜胺', 'details_zh': '每隔10～14天一次，雨后补喷。'},
+                ],
+                'cultivation': [
+                  {'method_zh': '修剪郁闭枝、清除病果病叶', 'details_zh': '改善通风透光，减少侵染源。'},
+                  {'method_zh': '果实套袋保护', 'details_zh': '减少病菌接触，提高果实品质。'},
+                ],
+              },
+            },
+    };
   }
 
   /// 版本差异化快捷作物

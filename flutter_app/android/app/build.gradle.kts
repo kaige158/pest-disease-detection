@@ -25,10 +25,12 @@ android {
         create("vegetable") {
             dimension = "version"
             applicationId = "com.laos.agri.veggie"
+            manifestPlaceholders["appLabel"] = "老挝蔬菜"
         }
         create("fruit") {
             dimension = "version"
             applicationId = "com.laos.agri.fruit"
+            manifestPlaceholders["appLabel"] = "老挝果树"
         }
     }
 

@@ -74,7 +74,7 @@
 ```
 AIProvider (接口/抽象类)
 ├── OpenAIProvider      (GPT-4 Vision / GPT-4o)
-├── ClaudeProvider      (Claude 3.5 Sonnet / Claude Opus 4)
+├── ClaudeProvider      (Codex 3.5 Sonnet / Codex Opus 4)
 ├── GeminiProvider      (Gemini 2.5 Pro / Flash)
 └── CustomProvider      (国内视觉模型: 通义千问/文心一言/智谱等)
 ```

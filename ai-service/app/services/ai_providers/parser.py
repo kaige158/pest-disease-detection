@@ -120,7 +120,7 @@ class AIResponseParser:
                 conditions_zh=item.get("conditions_zh", item.get("conditions", "")),
                 severity=item.get("severity", "moderate"),
                 prevention_plan=plan,
-                need_expert_review=confidence < 0.90,
+                need_expert_review=False,  # 由 confidence_manager 统一决策(recognition.py enrich)，此处不设
                 provider_name=provider_name,
                 parse_method="json",
                 raw_response=json.dumps(data, ensure_ascii=False),

@@ -133,7 +133,7 @@ public class RecognitionController {
             resultData.put("symptoms_zh", aiResult.getOrDefault("symptoms_zh", ""));
             resultData.put("conditions_zh", aiResult.getOrDefault("conditions_zh", ""));
             resultData.put("prevention", aiResult.getOrDefault("prevention", Map.of()));
-            resultData.put("provider", "gemini");
+            resultData.put("provider", aiResult.getOrDefault("provider", "gemini"));
             resultData.put("processing_time_ms", processingTimeMs);
             resultData.put("need_expert_review", aiResult.getOrDefault("need_expert_review", false));
 
@@ -295,16 +295,9 @@ public class RecognitionController {
         }
         record.setTopConfidence(BigDecimal.valueOf(confidence).setScale(4, RoundingMode.HALF_UP));
 
-        // 置信度级别
-        String level = "low";
-        if (confidence >= 0.90) level = "high";
-        else if (confidence >= 0.70) level = "medium";
+        // 置信度级别 — 直接采用 AI 服务 confidence_manager 的决策结果(单一来源)
+        String level = (String) aiResult.getOrDefault("confidence_level", "low");
         record.setConfidenceLevel(level);
-
-        // 记录是否需要专家审核
-        boolean needReview = confidence < 0.90;
-        Object reviewObj = aiResult.get("need_expert_review");
-        if (reviewObj instanceof Boolean) needReview = (Boolean) reviewObj;
 
         // 提取病害名 → 尝试匹配本地病害库
         String diseaseNameZh = (String) aiResult.getOrDefault("disease_name_zh", "");
@@ -325,6 +318,7 @@ public class RecognitionController {
         parsed.put("severity", aiResult.getOrDefault("severity", "moderate"));
         parsed.put("symptoms_zh", aiResult.getOrDefault("symptoms_zh", ""));
         parsed.put("conditions_zh", aiResult.getOrDefault("conditions_zh", ""));
+        parsed.put("need_expert_review", aiResult.getOrDefault("need_expert_review", false));
         if (aiResult.containsKey("prevention")) {
             parsed.put("prevention", aiResult.get("prevention"));
         }
@@ -342,7 +336,8 @@ public class RecognitionController {
         }
 
         // 技术元数据
-        record.setProviderUsed("gemini");
+        String providerUsed = (String) aiResult.getOrDefault("provider", "gemini");
+        record.setProviderUsed(providerUsed);
         record.setProcessingTimeMs(processingTimeMs);
     }
 

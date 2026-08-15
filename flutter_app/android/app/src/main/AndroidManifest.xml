@@ -1,6 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 网络请求（AI识别、知识同步） -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- 拍照识别 -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- 相机为可选硬件，无相机设备也可安装（从相册选图） -->
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+
     <application
-        android:label="laos_agri_app"
+        android:label="${appLabel}"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -51,6 +51,9 @@ target/
 # === Docker ===
 docker-compose.override.yml
 
+# === Claude Code 运行时状态 ===
+.claude/scheduled_tasks.json
+
 # === OS ===
 .DS_Store
 Thumbs.db
