@@ -1,0 +1,20 @@
+# ==========================================
+# 开发环境配置 — 本地开发时使用
+# 启动: mvn spring-boot:run -Dspring-boot.run.profiles=dev
+# 或: java -jar app.jar --spring.profiles.active=dev
+# ==========================================
+
+# 开发期放开管理后台权限，方便调试
+security:
+  admin-open: true
+
+# 开发期显示SQL日志
+spring:
+  jpa:
+    show-sql: true
+
+# 开发期降低日志级别
+logging:
+  level:
+    org.springframework.security: DEBUG
+    com.laos.agri: DEBUG

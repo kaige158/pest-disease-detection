@@ -3,6 +3,10 @@
 # 启动: mvn spring-boot:run -Dspring-boot.run.profiles=demo
 # ==========================================
 
+# 演示模式放开管理后台权限
+security:
+  admin-open: true
+
 spring:
   datasource:
     url: jdbc:h2:mem:laos_agri_demo;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
