@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+
+<!--
+  后台通用侧边栏
+  · 文案走 i18n（messages_zh / messages_lo），随 Cookie 与账号 language_pref 切换
+  · **按角色显示菜单**：农技员/专家看不到"用户管理""AI 配置"等无权功能，
+    避免出现"点了却报 403"的困惑（权限口径见 entity/Permission.java）
+  · 用法：<nav th:replace="~{admin/fragments :: sidebar('dashboard')}"></nav>
+-->
+<nav class="sidebar" th:fragment="sidebar(currentPage)">
+    <div class="logo">
+        🌱 <span th:text="#{app.name}">农业AI平台</span>
+        <small th:text="#{app.subtitle}">专家管理后台</small>
+    </div>
+
+    <a href="/admin/dashboard" th:classappend="${currentPage == 'dashboard'} ? 'active'">
+        <span class="icon">📊</span> <span th:text="#{nav.dashboard}">仪表盘</span>
+    </a>
+    <a href="/admin/review" th:classappend="${currentPage == 'review'} ? 'active'">
+        <span class="icon">🔍</span> <span th:text="#{nav.review}">AI审核中心</span>
+    </a>
+    <a href="/admin/knowledge" th:classappend="${currentPage == 'knowledge'} ? 'active'">
+        <span class="icon">📚</span> <span th:text="#{nav.knowledge}">知识库管理</span>
+    </a>
+    <!-- AI 配置：专家可见（需要知道当前用哪个模型），但是否能改由后端限制 -->
+    <a href="/admin/ai-config" sec:authorize="hasAnyRole('ADMIN','EXPERT')"
+       th:classappend="${currentPage == 'ai-config'} ? 'active'">
+        <span class="icon">🤖</span> <span th:text="#{nav.aiConfig}">AI 配置中心</span>
+    </a>
+    <!-- 用户管理：仅管理员（含账号安全操作） -->
+    <a href="/admin/users" sec:authorize="hasRole('ADMIN')"
+       th:classappend="${currentPage == 'users'} ? 'active'">
+        <span class="icon">👥</span> <span th:text="#{nav.users}">用户管理</span>
+    </a>
+    <a href="/admin/stats" th:classappend="${currentPage == 'stats'} ? 'active'">
+        <span class="icon">📈</span> <span th:text="#{nav.stats}">数据统计</span>
+    </a>
+    <!-- 审计日志：仅管理员（谁删了谁、谁看了谁的手机号，都要查得到） -->
+    <a href="/admin/audit-logs" sec:authorize="hasRole('ADMIN')"
+       th:classappend="${currentPage == 'audit-logs'} ? 'active'">
+        <span class="icon">🧾</span> <span th:text="#{nav.auditLogs}">审计日志</span>
+    </a>
+
+    <!-- 语言切换：交接给老挝同事使用时，一键切换界面语言 -->
+    <div class="lang-switch">
+        <div class="lang-title" th:text="#{common.language}">语言</div>
+        <div class="lang-buttons">
+            <a href="?lang=zh" th:classappend="${#locale.language == 'zh'} ? 'on'">中文</a>
+            <a href="?lang=lo" th:classappend="${#locale.language == 'lo'} ? 'on'">ລາວ</a>
+        </div>
+    </div>
+
+    <a href="/admin/logout" class="logout-link">
+        <span class="icon">🚪</span> <span th:text="#{common.logout}">退出登录</span>
+    </a>
+</nav>
+
+<!--
+  页面顶部栏：显示**真实登录账号**（不再写死"老师"），并按需给出改密提醒
+  用法：<div th:replace="~{admin/fragments :: topbar(#{dashboard.title}, '📊')}"></div>
+-->
+<div class="topbar" th:fragment="topbar(title, icon)">
+    <h2><span th:text="${icon}">📊</span> <span th:text="${title}">标题</span></h2>
+    <div class="who">
+        <span class="who-name" th:text="${currentAdmin != null} ? ${adminDisplayName} : '—'">管理员</span>
+        <span class="who-role" th:if="${currentAdmin != null}"
+              th:text="${'· ' + #messages.msg('role.' + currentAdmin.role)}">· 角色</span>
+        <a href="/admin/logout" class="who-logout" th:text="#{common.logout}">退出</a>
+    </div>
+</div>
+
+<!--
+  首次登录 / 密码被重置后的改密提醒横幅
+  由 AdminViewAdvice 提供的 mustChangePassword 控制显隐
+-->
+<div class="pwd-banner" th:fragment="passwordBanner" th:if="${mustChangePassword}">
+    <div class="pwd-banner-icon">🔐</div>
+    <div class="pwd-banner-body">
+        <b th:text="#{pwd.warnTitle}">请立即修改初始密码</b>
+        <div th:text="#{pwd.warnBody}">当前密码是系统初始密码或已被重置…</div>
+    </div>
+    <a class="pwd-banner-btn" href="/admin/change-password" th:text="#{pwd.changeNow}">立即修改</a>
+</div>
+
+<!-- 通用样式补充：侧边栏语言切换、顶部账号区、改密横幅 -->
+<th:block th:fragment="adminStyles">
+    <style>
+        .lang-switch { padding: 12px 16px 4px; }
+        .lang-switch .lang-title { font-size: 11px; color: #A5D6A7; margin-bottom: 6px; letter-spacing: 1px; }
+        .lang-switch .lang-buttons { display: flex; gap: 6px; }
+        .lang-switch .lang-buttons a {
+            flex: 1; text-align: center; padding: 5px 0; border-radius: 6px;
+            font-size: 12px; text-decoration: none; color: #C8E6C9;
+            border: 1px solid rgba(255,255,255,.25);
+        }
+        .lang-switch .lang-buttons a.on { background: #fff; color: #2E7D32; font-weight: 700; border-color: #fff; }
+        .sidebar .logout-link { margin-top: 10px; color: #FFCDD2 !important; }
+
+        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+        .topbar h2 { margin: 0; }
+        .topbar .who { font-size: 13px; color: #666; display: flex; align-items: center; gap: 6px; }
+        .topbar .who-name { font-weight: 600; color: #333; }
+        .topbar .who-role { color: #888; }
+        .topbar .who-logout { color: #999; text-decoration: none; margin-left: 6px; }
+        .topbar .who-logout:hover { color: #E53935; }
+
+        .pwd-banner {
+            display: flex; align-items: center; gap: 14px;
+            background: #FFF8E1; border: 1px solid #FFE082; border-left: 4px solid #FFB300;
+            border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;
+        }
+        .pwd-banner-icon { font-size: 22px; }
+        .pwd-banner-body { flex: 1; font-size: 13px; color: #7A5B00; line-height: 1.6; }
+        .pwd-banner-body b { color: #8D6E00; }
+        .pwd-banner-btn {
+            background: #FFB300; color: #fff; text-decoration: none; font-size: 13px;
+            padding: 8px 16px; border-radius: 6px; font-weight: 600; white-space: nowrap;
+        }
+        .pwd-banner-btn:hover { background: #FFA000; }
+    </style>
+</th:block>
+
+</body>
+</html>

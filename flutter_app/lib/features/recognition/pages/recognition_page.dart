@@ -1,11 +1,10 @@
-import 'dart:convert';
-import 'dart:io';
-
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:laos_agri_app/core/config/app_config.dart';
+import 'package:laos_agri_app/core/config/environment.dart';
+import 'package:laos_agri_app/core/network/api_client.dart';
 import 'package:laos_agri_app/features/recognition/pages/result_page.dart';
+import 'package:laos_agri_app/shared/widgets/image_loader.dart';
 
 /// 拍照识病页面 — 农业用户易懂的拍照识别
 class RecognitionPage extends StatefulWidget {
@@ -21,6 +20,9 @@ class _RecognitionPageState extends State<RecognitionPage> {
   final ImagePicker _picker = ImagePicker();
   XFile? _selectedImage;
   bool _isUploading = false;
+
+  /// 用户预选的作物（可为空=不限定），随识别请求上传给后端
+  int? _selectedCropId;
 
   /// 演示模式 — 编译时通过 --dart-define=DEMO_MODE=true 开启。
   /// 开启后识别不请求后端，直接返回演示结果（用于无服务器的UI演示APK）。
@@ -48,7 +50,8 @@ class _RecognitionPageState extends State<RecognitionPage> {
   }
 
   Future<void> _uploadAndIdentify() async {
-    if (_selectedImage == null) return;
+    final image = _selectedImage;
+    if (image == null) return;
     setState(() => _isUploading = true);
 
     // 演示模式：模拟AI分析耗时后返回演示结果，不请求后端
@@ -60,7 +63,7 @@ class _RecognitionPageState extends State<RecognitionPage> {
         builder: (_) => ResultPage(
           resultData: _buildDemoResult(),
           config: widget.config,
-          imagePath: _selectedImage!.path,
+          imagePath: image.path,
           language: _l,
         ),
       ));
@@ -68,28 +71,36 @@ class _RecognitionPageState extends State<RecognitionPage> {
     }
 
     try {
-      final bytes = await _selectedImage!.readAsBytes();
-      final base64Image = base64Encode(bytes);
-      final dio = Dio(BaseOptions(connectTimeout: const Duration(seconds: 10), receiveTimeout: const Duration(seconds: 30)));
-      final response = await dio.post('http://10.0.2.2:8080/api/v1/recognition/identify',
-          data: {'image': base64Image, 'version': widget.config.version, 'language': _l});
+      // 统一走 ApiClient：后端地址来自 AppEnvironment，multipart 字段与 Java 侧对齐
+      final bytes = await image.readAsBytes();
+      final data = await ApiClient(config: widget.config).identify(
+        imageBytes: bytes,
+        filename: image.name.isEmpty ? 'photo.jpg' : image.name,
+        language: _l,
+        cropId: _selectedCropId,
+      );
       if (!mounted) return;
 
-      final data = response.data;
-      if (data['code'] == 200 && data['data'] != null) {
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => ResultPage(resultData: data['data'], config: widget.config, imagePath: _selectedImage!.path, language: _l)));
-      } else {
-        _showError(data['message'] ?? t('识别失败', 'ກວດສອບບໍ່ສຳເລັດ'));
+      if (data.isEmpty) {
+        _showError(t('识别服务未返回结果', 'ບໍ່ມີຜົນການກວດສອບ'));
+        return;
       }
-    } on DioException catch (e) {
-      if (e.type == DioExceptionType.connectionTimeout) {
-        _showError(t('无法连接服务器', 'ບໍ່ສາມາດເຊື່ອມຕໍ່ເຊີບເວີໄດ້'));
-      } else {
-        _showError(t('识别失败', 'ກວດສອບບໍ່ສຳເລັດ: ${e.message}'));
-      }
+      Navigator.push(context, MaterialPageRoute(
+        builder: (_) => ResultPage(
+          resultData: data,
+          config: widget.config,
+          imagePath: image.path,
+          language: _l,
+        ),
+      ));
+    } on ApiException catch (e) {
+      _showError('${t('识别失败', 'ກວດສອບບໍ່ສຳເລັດ')}: ${e.message}');
     } catch (e) {
-      _showError(t('发生错误', 'ເກີດຂໍ້ຜິດພາດ: $e'));
+      // 连不上后端是外场最常见的问题，提示里带上当前地址，便于现场排障
+      _showError(t(
+        '无法连接服务器，请检查网络\n当前地址: ${AppEnvironment.springApiBaseUrl}',
+        'ບໍ່ສາມາດເຊື່ອມຕໍ່ເຊີບເວີໄດ້',
+      ));
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
@@ -150,28 +161,81 @@ class _RecognitionPageState extends State<RecognitionPage> {
     };
   }
 
+  /// 版本差异化快捷作物 — (emoji, 中文名, 老挝语名, 后端 crop_id)
+  /// crop_id 与数据库 `core.crop.id` 对齐，选中后随识别请求上传，缩小 AI 判定范围。
+  List<(String, String, String, int?)> get _quickCrops =>
+      widget.config.version == 'vegetable'
+          ? [
+              ('🥬', '白菜', 'ຜັກກາດຂາວ', 4),
+              ('🍅', '番茄', 'ໝາກເລັ່ນ', 2),
+              ('🌶️', '辣椒', 'ໝາກເຜັດ', 1),
+              ('🥒', '黄瓜', 'ໝາກແຕງ', 3),
+            ]
+          : [
+              ('🥭', '芒果', 'ໝາກມ່ວງ', 7),
+              ('🍌', '香蕉', 'ກ້ວຍ', 6),
+              ('🍊', '柑橘', 'ໝາກກ້ຽງ', 8),
+            ];
+
+  void _toggleCrop(int? cropId) {
+    setState(() => _selectedCropId = _selectedCropId == cropId ? null : cropId);
+    if (cropId == null) return;
+    final crop = _quickCrops.firstWhere((c) => c.$4 == cropId, orElse: () => ('', '', '', null));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(t('已选定作物：${crop.$2}，识别将优先匹配',
+          'ເລືອກພືດແລ້ວ: ${crop.$3}')),
+      duration: const Duration(seconds: 2),
+    ));
+  }
+
   /// 版本差异化快捷作物
   Widget _buildQuickCrops() {
     final primary = Color(widget.config.primaryColor);
-    final crops = widget.config.version == 'vegetable'
-        ? [('🥬', t('白菜', 'ຜັກກາດ')), ('🍅', t('番茄', 'ໝາກເລັ່ນ')), ('🌶️', t('辣椒', 'ໝາກເຜັດ')), ('🥒', t('黄瓜', 'ໝາກແຕງ'))]
-        : [('🥭', t('芒果', 'ໝາກມ່ວງ')), ('🍌', t('香蕉', 'ກ້ວຍ')), ('🍒', t('荔枝', 'ໝາກລິ້ນຈີ່')), ('🍊', t('柑橘', 'ໝາກກ້ຽງ'))];
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
-          children: crops.map((c) => Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 3),
-            child: ActionChip(
-              avatar: Text(c.$1, style: const TextStyle(fontSize: 14)),
-              label: Text(c.$2, style: const TextStyle(fontSize: 13)),
-              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(t('已选: ${c.$2}，拍照优先匹配', 'ເລືອກ: ${c.$2}')))),
-              backgroundColor: primary.withValues(alpha: 0.06),
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(right: 6, top: 6),
+              child: Text(t('作物(可选)', 'ພືດ (ທາງເລືອກ)'),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600])),
             ),
-          )).toList(),
+            ..._quickCrops.map((c) {
+              final selected = _selectedCropId == c.$4;
+              final name = _l == 'zh' ? c.$2 : c.$3;
+              // 这里刻意不用 ActionChip：Flutter Web (CanvasKit) 下
+              // Chip 的 label 会被压缩到不可见（实测语义树里也没有该节点），
+              // 自绘容器可以完全控制布局，行为一致且各平台渲染稳定。
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: InkWell(
+                  onTap: () => _toggleCrop(c.$4),
+                  borderRadius: BorderRadius.circular(18),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: selected ? primary : primary.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: selected ? primary : primary.withValues(alpha: 0.35),
+                      ),
+                    ),
+                    child: Text(
+                      '${c.$1} $name',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: selected ? Colors.white : Colors.grey[800],
+                        fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ],
         ),
       ),
     );
@@ -224,7 +288,10 @@ class _RecognitionPageState extends State<RecognitionPage> {
               decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.grey[300]!)),
               child: _selectedImage != null
-                  ? ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(File(_selectedImage!.path), fit: BoxFit.contain))
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: buildLocalImage(_selectedImage!.path, fit: BoxFit.contain),
+                    )
                   : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                       Icon(Icons.camera_alt, size: 80, color: Colors.grey[400]),
                       const SizedBox(height: 16),

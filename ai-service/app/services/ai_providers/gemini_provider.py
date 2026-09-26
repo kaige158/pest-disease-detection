@@ -17,6 +17,7 @@ class GeminiProvider(AIProvider):
     """
 
     BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
+    DEFAULT_MODEL = "gemini-3.6-flash"
     MAX_RETRIES = 3
     RETRY_DELAY = 2  # 秒
 
@@ -29,7 +30,7 @@ class GeminiProvider(AIProvider):
         last_error = None
         for attempt in range(self.MAX_RETRIES):
             try:
-                async with httpx.AsyncClient(timeout=60) as client:
+                async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
                     response = await client.post(url, json=body)
                     if response.is_success:
                         return response.json()
@@ -66,8 +67,8 @@ class GeminiProvider(AIProvider):
         crop_name = crop_info.get("crop_name", "") if crop_info else ""
         crop_hint = f"作物类型可能是: {crop_name}" if crop_name else ""
 
-        model = settings.ai_model or "gemini-2.5-flash"
-        url = f"{self.BASE_URL}/models/{model}:generateContent?key={settings.ai_api_key}"
+        model = self.model or "gemini-2.5-flash"
+        url = f"{self.BASE_URL}/models/{model}:generateContent?key={self.api_key}"
 
         user_text = f"请识别这张图片中的植物病虫害。{crop_hint}"
 
@@ -124,8 +125,8 @@ class GeminiProvider(AIProvider):
         self, message: str, history: List[ChatMessage],
         language: str = "zh", version: str = "vegetable",
     ) -> str:
-        model = settings.ai_model or "gemini-2.5-flash"
-        url = f"{self.BASE_URL}/models/{model}:generateContent?key={settings.ai_api_key}"
+        model = self.model or "gemini-2.5-flash"
+        url = f"{self.BASE_URL}/models/{model}:generateContent?key={self.api_key}"
 
         contents = []
         for h in history[-10:]:
@@ -172,8 +173,8 @@ class GeminiProvider(AIProvider):
     async def generate_prevention_plan(
         self, disease_info: dict, language: str = "zh",
     ) -> dict:
-        model = settings.ai_model or "gemini-2.5-flash"
-        url = f"{self.BASE_URL}/models/{model}:generateContent?key={settings.ai_api_key}"
+        model = self.model or "gemini-2.5-flash"
+        url = f"{self.BASE_URL}/models/{model}:generateContent?key={self.api_key}"
 
         disease_name = disease_info.get(
             "disease_name_zh",

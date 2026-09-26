@@ -1,5 +1,11 @@
 """AI Response Parser — 将Vision API的原始响应标准化为DiagnosisResult"""
 
+# 延迟解析注解：本模块使用了 PEP 604 写法（如 `dict | None`），
+# 该写法在 Python 3.10+ 才可用于运行时求值。
+# 加上 future import 后，Python 3.8/3.9 也能正常导入本模块，
+# 便于在低版本环境下做单元验证（正式运行仍建议 3.11+）。
+from __future__ import annotations
+
 import json
 import re
 import time

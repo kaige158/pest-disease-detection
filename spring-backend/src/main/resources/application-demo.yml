@@ -3,13 +3,43 @@
 # 启动: mvn spring-boot:run -Dspring-boot.run.profiles=demo
 # ==========================================
 
-# 演示模式放开管理后台权限
+# 演示模式：管理后台同样需要登录（真实鉴权）
+# 管理员账号 admin，密码由 app.admin-init-password 决定（见文件末尾）
 security:
-  admin-open: true
+  admin-open: false
+  # 密钥优先取环境变量 / .env，缺失时用演示默认值（便于全新 clone 直接跑起来）
+  # 注意：**不要在这里写死密钥**，否则会覆盖 .env，导致自检拿不到真实密钥
+  ai-key-secret: ${AI_KEY_SECRET:demo-profile-only-secret-not-for-production}
+
+# 演示用管理员初始密码（生产必须用环境变量注入，且不要用这种弱口令）
+app:
+  admin-init-password: ${ADMIN_INIT_PASSWORD:admin123}
+  # 演示账号播种：为专家/农技员/农户各建一个可直接登录的账号
+  # （账号与密码见 docs/交付说明-Sprint13.md；只在 demo/dev 档生效）
+  demo:
+    seed-accounts: ${DEMO_SEED_ACCOUNTS:true}
+    password: ${DEMO_PASSWORD:Laos@2026}
+    country-code: "856"
+  # 本机重置密码接口的令牌（见 scripts/reset_admin_password.ps1）
+  # 演示档给一个固定值，方便忘记密码时自救；生产建议留空以关闭该接口
+  ops-token: ${OPS_TOKEN:local-dev-reset-token}
+  # 演示档开启短信验证码，用于展示"号码归属验证"能力。
+  # 没有真实短信通道时，验证码会打印在服务端日志，并可通过
+  # /api/v1/auth/sms/demo-code 查询（生产环境必须关闭 expose-code）
+  sms:
+    require-code: ${SMS_REQUIRE_CODE:true}
+    provider: ${SMS_PROVIDER:log}
+    expose-code: ${SMS_EXPOSE_CODE:true}
+    # 演示档放宽限额：开发与自动化测试会从同一个 IP 反复注册，
+    # 严格限额（生产默认 20/小时）会让回归测试全部撞上限流
+    max-per-hour-per-ip: ${SMS_MAX_PER_HOUR_PER_IP:300}
+    max-per-day-global: ${SMS_MAX_PER_DAY_GLOBAL:5000}
 
 spring:
   datasource:
-    url: jdbc:h2:mem:laos_agri_demo;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    # NON_KEYWORDS=USER —— H2 2.x 把 USER 当保留字，会拒绝 user 表；
+    # 这里把 USER 移出关键字列表，让 demo 档能正常建 users/user 表。
+    url: jdbc:h2:mem:laos_agri_demo;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;NON_KEYWORDS=USER,VALUE,KEY
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -26,9 +56,15 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        default_schema: PUBLIC
+        # 与生产保持一致：业务表都放 core schema。
+        # 之前这里是 PUBLIC，而 EvaluationService 等原生 SQL 写的是 core.crop，
+        # 于是"数据统计"页的准确率接口在演示档直接 500（core.crop 不存在）。
+        default_schema: core
     database-platform: org.hibernate.dialect.H2Dialect
 
   sql:
     init:
-      mode: never
+      # 先建 core/extension/audit schema（H2 默认没有），JPA 再据此建表
+      mode: always
+      schema-locations: classpath:schema-all.sql
+      continue-on-error: true

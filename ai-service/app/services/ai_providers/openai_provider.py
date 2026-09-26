@@ -10,6 +10,9 @@ from app.services.ai_providers.parser import AIResponseParser
 class OpenAIProvider(AIProvider):
     """OpenAI GPT-4o Vision Provider"""
 
+    DEFAULT_URL = "https://api.openai.com/v1/chat/completions"
+    DEFAULT_MODEL = "gpt-4o"
+
     @property
     def provider_name(self) -> str:
         return "openai"
@@ -23,12 +26,12 @@ class OpenAIProvider(AIProvider):
         system_prompt = self._build_system_prompt(version, language)
         user_prompt = "请识别这张图片中的植物病虫害。" + (f"作物类型: {crop_info['crop_name']}" if crop_info else "")
 
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
             response = await client.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {settings.ai_api_key}"},
+                self._endpoint(self.DEFAULT_URL, "/v1/chat/completions"),
+                headers={"Authorization": f"Bearer {self.api_key}"},
                 json={
-                    "model": settings.ai_model,
+                    "model": self.model or self.DEFAULT_MODEL,
                     "messages": [
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": [
@@ -36,8 +39,8 @@ class OpenAIProvider(AIProvider):
                             {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}},
                         ]},
                     ],
-                    "max_tokens": settings.ai_max_tokens,
-                    "temperature": settings.ai_temperature,
+                    "max_tokens": self.max_tokens,
+                    "temperature": self.temperature,
                 },
             )
             response.raise_for_status()
@@ -47,11 +50,12 @@ class OpenAIProvider(AIProvider):
         return AIResponseParser.parse(raw_text, self.provider_name, language)
 
     async def chat(self, message: str, history: List[ChatMessage], language: str = "zh", version: str = "vegetable") -> str:
-        async with httpx.AsyncClient(timeout=20) as client:
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
             response = await client.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {settings.ai_api_key}"},
-                json={"model": "gpt-4o", "messages": [{"role": "user", "content": message}], "max_tokens": 500},
+                self._endpoint(self.DEFAULT_URL, "/v1/chat/completions"),
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                json={"model": self.model or self.DEFAULT_MODEL,
+                      "messages": [{"role": "user", "content": message}], "max_tokens": 500},
             )
             data = response.json()
             return data["choices"][0]["message"]["content"]

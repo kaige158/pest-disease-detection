@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:lang="${param.lang != null ? param.lang : (uiLang != null ? uiLang : 'zh')}">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="#{audit.title} + ' — ' + #{app.name}">审计日志</title>
+    <link rel="stylesheet" href="/css/admin.css">
+    <th:block th:replace="~{admin/fragments :: adminStyles}"></th:block>
+    <style>
+        table { width: 100%; border-collapse: collapse; background: #fff; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
+        th { background: #FAFAFA; color: #555; font-weight: 600; white-space: nowrap; }
+        tr:hover td { background: #F9FDF9; }
+        .act { font-size: 11px; padding: 2px 8px; border-radius: 10px; white-space: nowrap;
+            background: #ECEFF1; color: #455A64; }
+        /* 危险操作单独配色：一眼就能在长列表里找到"谁删了账号 / 谁看了手机号" */
+        .act-danger { background: #FFEBEE; color: #B71C1C; }
+        .act-warn { background: #FFF8E1; color: #8D6E00; }
+        .detail { color: #666; max-width: 520px; }
+        .empty { text-align: center; color: #999; padding: 30px; }
+        .pager { margin-top: 14px; display: flex; gap: 10px; align-items: center;
+            font-size: 13px; color: #666; }
+    </style>
+</head>
+<body>
+    <nav th:replace="~{admin/fragments :: sidebar('audit-logs')}"></nav>
+
+    <div class="main">
+        <div th:replace="~{admin/fragments :: topbar(#{audit.title}, '🧾')}"></div>
+
+        <div style="background:#FFF8E1;border:1px solid #FFE082;border-radius:8px;padding:12px 16px;
+                    font-size:12px;color:#8D6E00;margin-bottom:14px;line-height:1.7;"
+             th:text="#{audit.note}">说明</div>
+
+        <div class="card" style="padding:0;overflow:hidden;">
+            <table>
+                <thead>
+                <tr>
+                    <th style="width:60px;" th:text="#{knowledge.id}">ID</th>
+                    <th style="width:160px;" th:text="#{audit.time}">时间</th>
+                    <th style="width:170px;" th:text="#{audit.action}">操作</th>
+                    <th style="width:150px;" th:text="#{audit.actor}">操作人</th>
+                    <th style="width:120px;" th:text="#{audit.target}">对象</th>
+                    <th th:text="#{audit.detail}">详情</th>
+                    <th style="width:120px;" th:text="#{audit.ip}">来源 IP</th>
+                </tr>
+                </thead>
+                <tbody id="rows">
+                <tr><td colspan="7" class="empty" th:text="#{common.loading}">加载中…</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pager">
+            <button class="btn" style="background:#eee;" onclick="prevPage()" th:text="#{users.prevPage}">上一页</button>
+            <span id="pageInfo"></span>
+            <button class="btn" style="background:#eee;" onclick="nextPage()" th:text="#{users.nextPage}">下一页</button>
+            <span id="totalInfo"></span>
+        </div>
+    </div>
+
+    <div id="i18n" style="display:none;"
+         th:attr="data-page=#{users.page},
+                  data-total-count=#{users.totalCount},
+                  data-no-data=#{common.noData},
+                  data-loading=#{common.loading},
+                  data-failed=#{common.failed}"></div>
+
+    <script src="/js/admin.js"></script>
+    <script src="/js/admin-audit.js?v=20260927a"></script>
+</body>
+</html>

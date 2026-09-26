@@ -3,6 +3,7 @@ package com.laos.agri;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * 中老双语农业病虫害诊断与知识服务平台 — 主入口
@@ -12,6 +13,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
  */
 @SpringBootApplication
 @EnableJpaAuditing
+@EnableScheduling   // 定时清理过期短信验证码（见 PhoneVerificationService#cleanupExpired）
 public class AgriPlatformApplication {
 
     public static void main(String[] args) {

@@ -15,6 +15,9 @@ public interface TrainingDatasetRepository extends JpaRepository<TrainingDataset
 
     Optional<TrainingDataset> findByDiagnosisId(Long diagnosisId);
 
+    /** 由这些识别记录派生出来的训练数据资产（删除用户时一并处理） */
+    List<TrainingDataset> findByDiagnosisIdIn(java.util.Collection<Long> diagnosisIds);
+
     // 训练就绪数据
     @Query("SELECT t FROM TrainingDataset t WHERE t.trainingReady = true AND t.isActive = true")
     Page<TrainingDataset> findTrainingReady(Pageable pageable);

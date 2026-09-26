@@ -1,40 +1,20 @@
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+﻿<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:lang="${param.lang != null ? param.lang : (uiLang != null ? uiLang : 'zh')}">
 <head>
     <meta charset="UTF-8">
     <title>农业AI服务平台 — 专家后台</title>
     <link rel="stylesheet" href="/css/admin.css">
+    <th:block th:replace="~{admin/fragments :: adminStyles}"></th:block>
 </head>
 <body>
     <!-- 侧边栏 -->
-    <nav class="sidebar">
-        <div class="logo">
-            🌱 农业AI平台
-            <small>专家管理后台</small>
-        </div>
-        <a href="/admin/dashboard" class="active" th:classappend="${currentPage == 'dashboard'} ? 'active'">
-            <span class="icon">📊</span> <span>仪表盘</span>
-        </a>
-        <a href="/admin/review" th:classappend="${currentPage == 'review'} ? 'active'">
-            <span class="icon">🔍</span> <span>AI审核中心</span>
-        </a>
-        <a href="/admin/knowledge" th:classappend="${currentPage == 'knowledge'} ? 'active'">
-            <span class="icon">📚</span> <span>知识库管理</span>
-        </a>
-        <a href="/admin/stats" th:classappend="${currentPage == 'stats'} ? 'active'">
-            <span class="icon">📈</span> <span>数据统计</span>
-        </a>
-    </nav>
+    <nav th:replace="{~{admin/fragments :: sidebar('dashboard')}}"></nav>
 
     <!-- 主内容区 -->
     <div class="main">
         <!-- 顶部栏 -->
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-            <h2 th:text="${pageTitle}">仪表盘</h2>
-            <div style="font-size:13px;color:#666;">
-                👩‍🏫 老师 | <a href="/logout" style="color:#999;">退出</a>
-            </div>
-        </div>
+        <div th:replace="~{admin/fragments :: topbar(#{dashboard.title}, '📊')}"></div>
+        <div th:replace="~{admin/fragments :: passwordBanner}"></div>
 
         <!-- 内容插槽 -->
         <div th:insert="~{::content}"></div>

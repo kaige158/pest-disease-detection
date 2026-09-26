@@ -7,6 +7,7 @@ import com.laos.agri.repository.DiseaseRepository;
 import com.laos.agri.service.EvaluationService;
 import com.laos.agri.service.TrainingDataService;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -15,9 +16,17 @@ import java.util.Map;
 
 /**
  * 专家后台API — AI审核 + 数据管理 (第四阶段MVP版本)
+ *
+ * <p>权限：审核与统计是专家/农技员的日常工作，因此 ADMIN / EXPERT / TECHNICIAN 都可用；
+ * 开发/演示期若设置 {@code security.admin-open=true}，则完全放开（便于本地演示）。
+ *
+ * <p>注意 SpEL 写法：{@code ${...}} 占位符在 @PreAuthorize 里**不生效**，
+ * 必须引用 Bean（{@code @securityFlags.adminOpen}）。早期用占位符写法导致
+ * 本控制器所有接口 500（SpelParseException），已修。
  */
 @RestController
 @RequestMapping("/api/v1/admin")
+@PreAuthorize("hasAnyRole('ADMIN','EXPERT','TECHNICIAN') or @securityFlags.adminOpen")
 public class AdminController {
 
     private final DiagnosisRecordRepository diagnosisRepo;

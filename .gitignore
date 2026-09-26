@@ -57,6 +57,14 @@ docker-compose.override.yml
 # === Claude Code è¿è¡Œæ—¶çŠ¶æ€ ===
 .claude/scheduled_tasks.json
 
+# === æœ¬æœºè°ƒè¯•ç”¨ä¸´æ—¶ç›®å½•ï¼ˆå«ä¼šè¯ä»¤ç‰Œã€æˆªå›¾ã€ä¸´æ—¶è„šæœ¬ï¼Œç»ä¸å…¥åº“ï¼‰===
+.dsh-home/
+
 # === OS ===
 .DS_Store
 Thumbs.db
+
+# === ½ØÍ¼½Å±¾²úÉúµÄä¯ÀÀÆ÷ÁÙÊ±Ä¿Â¼£¨Ìå»ı´ó¡¢·Ç½»¸¶Îï£©===
+docs/ui-preview-*/p-*/
+.dsh-home/*/p-*/
+

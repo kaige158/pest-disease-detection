@@ -9,7 +9,8 @@ import time
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from app.services.ai_providers.factory import get_ai_provider
+from app.services.ai_providers.factory import build_provider
+from app.services.ai_providers.base import ProviderConfig
 from app.services.ai_providers.parser import AIResponseParser
 from app.services.quality.image_quality_checker import image_quality_checker, QualityGrade
 from app.services.quality.confidence_manager import confidence_manager
@@ -22,6 +23,9 @@ class IdentifyRequest(BaseModel):
     crop_name: str = ""     # 作物名(可选)
     language: str = "zh"    # zh/lo
     version: str = "vegetable"  # vegetable/fruit
+    # 运行时 AI 通道配置 —— 业务后端从数据库读取当前生效通道后下发，
+    # 这样后台改配置立即生效，AI 服务无需重启、也无需直连数据库
+    provider_config: dict = {}
 
 
 class ChatRequest(BaseModel):
@@ -67,9 +71,9 @@ async def identify_disease(request: IdentifyRequest):
     if request.crop_name:
         crop_info = {"crop_name": request.crop_name}
 
-    # 3. 调用AI Provider
+    # 3. 调用AI Provider（使用后台配置的当前生效通道）
     try:
-        provider = get_ai_provider()
+        provider = build_provider(ProviderConfig.from_dict(request.provider_config))
         results = await provider.identify_disease(
             image_bytes=image_bytes,
             crop_info=crop_info,

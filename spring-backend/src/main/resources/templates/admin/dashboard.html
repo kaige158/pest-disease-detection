@@ -1,54 +1,55 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" th:lang="${param.lang != null ? param.lang : (uiLang != null ? uiLang : 'zh')}">
 <head>
     <meta charset="UTF-8">
-    <title>仪表盘 — 农业AI平台</title>
+    <title th:text="#{dashboard.title} + ' — ' + #{app.name}">仪表盘</title>
     <link rel="stylesheet" href="/css/admin.css">
+    <th:block th:replace="~{admin/fragments :: adminStyles}"></th:block>
 </head>
 <body>
-    <nav class="sidebar">
-        <div class="logo">🌱 农业AI平台<small>专家管理后台</small></div>
-        <a href="/admin/dashboard" class="active"><span class="icon">📊</span> <span>仪表盘</span></a>
-        <a href="/admin/review"><span class="icon">🔍</span> <span>AI审核中心</span></a>
-        <a href="/admin/knowledge"><span class="icon">📚</span> <span>知识库管理</span></a>
-        <a href="/admin/stats"><span class="icon">📈</span> <span>数据统计</span></a>
-    </nav>
+    <!-- 侧边栏（含语言切换） -->
+    <nav th:replace="~{admin/fragments :: sidebar('dashboard')}"></nav>
 
     <div class="main">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-            <h2>📊 仪表盘</h2>
-            <span style="font-size:13px;color:#666;">👩‍🏫 老师 | 欢迎回来</span>
-        </div>
+        <!-- 顶部栏：显示真实登录账号（原来是写死的"老师"） -->
+        <div th:replace="~{admin/fragments :: topbar(#{dashboard.title}, '📊')}"></div>
+
+        <!-- 首次登录 / 密码被重置 → 提醒改密 -->
+        <div th:replace="~{admin/fragments :: passwordBanner}"></div>
 
         <!-- 统计卡片 -->
         <div class="stats-row">
             <div class="stat-card">
                 <div class="number" th:text="${totalDiagnoses}">0</div>
-                <div class="label">累计识别次数</div>
+                <div class="label" th:text="#{dashboard.totalDiagnoses}">累计识别次数</div>
             </div>
             <div class="stat-card">
                 <div class="number" style="color:#FF9800" th:text="${pendingReview}">0</div>
-                <div class="label">待审核</div>
+                <div class="label" th:text="#{dashboard.pendingReview}">待审核</div>
             </div>
             <div class="stat-card">
                 <div class="number" th:text="${totalDiseases}">0</div>
-                <div class="label">病虫害条目</div>
+                <div class="label" th:text="#{dashboard.totalDiseases}">病虫害条目</div>
             </div>
             <div class="stat-card">
                 <div class="number" style="color:#1565C0" th:text="${usableImages}">0</div>
-                <div class="label">可用图片数据</div>
+                <div class="label" th:text="#{dashboard.usableImages}">可用图片数据</div>
             </div>
         </div>
 
         <!-- 快捷操作 -->
         <div class="card" style="text-align:center;padding:40px;">
-            <h3>🚀 快捷操作</h3>
-            <div style="display:flex;gap:12px;justify-content:center;margin-top:16px;">
+            <h3>🚀 <span th:text="#{dashboard.quickActions}">快捷操作</span></h3>
+            <div style="display:flex;gap:12px;justify-content:center;margin-top:16px;flex-wrap:wrap;">
                 <a href="/admin/review" class="btn btn-warning">
-                    🔍 审核待处理结果 (<span th:text="${pendingReview}">0</span>条)
+                    🔍 <span th:text="#{dashboard.reviewPending}">审核待处理结果</span>
+                    (<span th:text="${pendingReview}">0</span><span th:text="#{dashboard.items}">条</span>)
                 </a>
                 <a href="/admin/knowledge" class="btn btn-primary">
-                    📚 管理知识库
+                    📚 <span th:text="#{dashboard.manageKnowledge}">管理知识库</span>
+                </a>
+                <a href="/admin/ai-config" class="btn" style="background:#4CAF50;color:#fff;">
+                    🤖 <span th:text="#{nav.aiConfig}">AI 配置中心</span>
                 </a>
             </div>
         </div>

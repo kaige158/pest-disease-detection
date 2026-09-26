@@ -20,6 +20,7 @@ dependencies:
   cached_network_image: ^3.4.0     # 图片缓存
   intl: ^0.20.2                    # 国际化 (版本跟随Flutter SDK内置)
   flutter_dotenv: ^5.2.0           # 环境变量管理
+  shared_preferences: ^2.5.5       # 本地持久化（登录令牌、个人设置）
 
 dev_dependencies:
   flutter_test:

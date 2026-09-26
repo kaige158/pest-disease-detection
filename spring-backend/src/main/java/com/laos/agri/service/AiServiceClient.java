@@ -90,6 +90,35 @@ public class AiServiceClient {
     }
 
     /**
+     * 连通性自检 —— 后台"AI 配置中心"点「测试连接」时调用
+     *
+     * <p>由 AI 服务按其自身网络环境发起一次最小真实调用（不是只 ping 端口），
+     * 因此能真正验证 Key / 模型名 / 网络是否可用。
+     *
+     * @param provider gemini/kimi/openai/claude/custom/mock
+     * @param apiKey   明文密钥（后台解密后传入；AI 服务不落库）
+     * @param baseUrl  自定义地址，可空
+     * @param model    模型名，可空（用该 Provider 默认值）
+     */
+    public Map<String, Object> testProvider(String provider, String apiKey, String baseUrl, String model) {
+        var request = new java.util.HashMap<String, Object>();
+        request.put("provider", provider);
+        request.put("api_key", apiKey == null ? "" : apiKey);
+        request.put("base_url", baseUrl == null ? "" : baseUrl);
+        request.put("model", model == null ? "" : model);
+
+        log.info("Calling AI provider self-test: provider={}, model={}", provider, model);
+
+        var response = restClient.post()
+                .uri("/api/v1/config/test")
+                .body(request)
+                .retrieve()
+                .body(new ParameterizedTypeReference<Map<String, Object>>() {});
+
+        return response != null ? response : Map.of("ok", false, "message", "AI 服务返回为空");
+    }
+
+    /**
      * 生成防控方案
      */
     public Map<String, Object> generatePreventionPlan(Integer diseaseId, String language) {

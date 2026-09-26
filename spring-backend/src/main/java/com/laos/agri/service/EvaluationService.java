@@ -65,9 +65,11 @@ public class EvaluationService {
      * 获取AI准确率统计
      */
     public Map<String, Object> getAccuracyStats(String provider, Integer cropId) {
+        // COALESCE 不能省：表里还没有评估记录时 SUM(...) 返回 NULL，
+        // 直接 .longValue() 会 NullPointerException —— 新部署一看统计页就 500。
         StringBuilder sql = new StringBuilder(
             "SELECT COUNT(*) as total, " +
-            "SUM(CASE WHEN is_correct THEN 1 ELSE 0 END) as correct " +
+            "COALESCE(SUM(CASE WHEN is_correct THEN 1 ELSE 0 END), 0) as correct " +
             "FROM expert.evaluation_record WHERE 1=1");
         List<Object> params = new ArrayList<>();
 
@@ -81,8 +83,8 @@ public class EvaluationService {
         }
 
         var result = jdbc.queryForMap(sql.toString(), params.toArray());
-        long total = ((Number) result.get("total")).longValue();
-        long correct = ((Number) result.get("correct")).longValue();
+        long total = toLong(result.get("total"));
+        long correct = toLong(result.get("correct"));
         double accuracy = total > 0 ? (double) correct / total : 0.0;
 
         return Map.of(
@@ -101,7 +103,7 @@ public class EvaluationService {
         String sql = """
             SELECT c.name_zh as crop_name, e.crop_id,
                    COUNT(*) as total,
-                   SUM(CASE WHEN e.is_correct THEN 1 ELSE 0 END) as correct
+                   COALESCE(SUM(CASE WHEN e.is_correct THEN 1 ELSE 0 END), 0) as correct
             FROM expert.evaluation_record e
             LEFT JOIN core.crop c ON e.crop_id = c.id
             GROUP BY e.crop_id, c.name_zh
@@ -109,14 +111,19 @@ public class EvaluationService {
             """;
         return jdbc.queryForList(sql).stream()
             .map(row -> {
-                long total = ((Number) row.get("total")).longValue();
-                long correct = ((Number) row.get("correct")).longValue();
+                long total = toLong(row.get("total"));
+                long correct = toLong(row.get("correct"));
                 double acc = total > 0 ? (double) correct / total : 0.0;
                 Map<String, Object> m = new LinkedHashMap<>(row);
                 m.put("accuracy", Math.round(acc * 10000.0) / 100.0);
                 return m;
             })
             .toList();
+    }
+
+    /** SUM 在无数据行时是 NULL，统一在这里兜底成 0 */
+    private static long toLong(Object v) {
+        return v instanceof Number n ? n.longValue() : 0L;
     }
 
     private String extractDiseaseName(String parsedResults) {

@@ -1,37 +1,17 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" th:lang="${param.lang != null ? param.lang : (uiLang != null ? uiLang : 'zh')}">
 <head>
     <meta charset="UTF-8">
     <title>知识库管理 — 农业AI平台</title>
     <link rel="stylesheet" href="/css/admin.css">
+    <th:block th:replace="~{admin/fragments :: adminStyles}"></th:block>
 </head>
 <body>
-    <nav class="sidebar">
-        <div class="logo">🌱 农业AI平台<small>专家管理后台</small></div>
-        <a href="/admin/dashboard"><span class="icon">📊</span> <span>仪表盘</span></a>
-        <a href="/admin/review"><span class="icon">🔍</span> <span>AI审核中心</span></a>
-        <a href="/admin/knowledge" class="active"><span class="icon">📚</span> <span>知识库管理</span></a>
-        <a href="/admin/stats"><span class="icon">📈</span> <span>数据统计</span></a>
-    </nav>
+    <nav th:replace="~{admin/fragments :: sidebar('knowledge')}"></nav>
 
     <div class="main">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-            <h2>📚 知识库管理</h2>
-            <button class="btn btn-primary" onclick="showAddDiseaseForm()">+ 新增病虫害</button>
-        </div>
-
-        <!-- 搜索 + 筛选 -->
-        <div class="card" style="padding:12px 16px;">
-            <div style="display:flex;gap:12px;align-items:center;">
-                <input type="text" placeholder="搜索病虫害..." style="flex:1;padding:8px 12px;border:1px solid #E0E0E0;border-radius:4px;font-size:13px;" id="searchInput">
-                <select style="padding:8px 12px;border:1px solid #E0E0E0;border-radius:4px;font-size:13px;" id="versionFilter">
-                    <option value="">全部版本</option>
-                    <option value="vegetable">蔬菜版</option>
-                    <option value="fruit">果树版</option>
-                </select>
-                <button class="btn btn-primary btn-sm" onclick="searchDiseases()">搜索</button>
-            </div>
-        </div>
+        <div th:replace="~{admin/fragments :: topbar(#{knowledge.title}, '📚')}"></div>
+        <div th:replace="~{admin/fragments :: passwordBanner}"></div>
 
         <!-- 病虫害列表 -->
         <div class="card">

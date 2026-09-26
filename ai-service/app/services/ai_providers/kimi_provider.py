@@ -11,6 +11,9 @@ from app.services.ai_providers.parser import AIResponseParser
 class KimiProvider(AIProvider):
     """Kimi K2.6 Vision Provider — 原生多模态推理模型"""
 
+    DEFAULT_URL = "https://api.moonshot.cn/v1/chat/completions"
+    DEFAULT_MODEL = "kimi-k2.6"
+
     @property
     def provider_name(self) -> str:
         return "kimi"
@@ -24,15 +27,15 @@ class KimiProvider(AIProvider):
         base64_image = base64.b64encode(compressed).decode()
         crop_hint = f"作物类型可能是: {crop_info['crop_name']}" if crop_info else ""
 
-        async with httpx.AsyncClient(timeout=60) as client:
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
             response = await client.post(
-                "https://api.moonshot.cn/v1/chat/completions",
+                self._endpoint(self.DEFAULT_URL, "/v1/chat/completions"),
                 headers={
-                    "Authorization": f"Bearer {settings.ai_api_key}",
+                    "Authorization": f"Bearer {self.api_key}",
                     "Content-Type": "application/json",
                 },
                 json={
-                    "model": "kimi-k2.6",
+                    "model": self.model or self.DEFAULT_MODEL,
                     "messages": [
                         {"role": "system", "content": self._system_prompt(version, language)},
                         {"role": "user", "content": [
@@ -42,8 +45,8 @@ class KimiProvider(AIProvider):
                             {"type": "text", "text": f"请识别这张图片中的植物病虫害。{crop_hint}"},
                         ]},
                     ],
-                    "max_tokens": settings.ai_max_tokens,
-                    "temperature": settings.ai_temperature,
+                    "max_tokens": self.max_tokens,
+                    "temperature": self.temperature,
                 },
             )
             response.raise_for_status()
@@ -59,15 +62,15 @@ class KimiProvider(AIProvider):
 
     async def chat(self, message: str, history: List[ChatMessage],
                    language: str = "zh", version: str = "vegetable") -> str:
-        async with httpx.AsyncClient(timeout=60) as client:
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
             response = await client.post(
-                "https://api.moonshot.cn/v1/chat/completions",
-                headers={"Authorization": f"Bearer {settings.ai_api_key}"},
+                self._endpoint(self.DEFAULT_URL, "/v1/chat/completions"),
+                headers={"Authorization": f"Bearer {self.api_key}"},
                 json={
-                    "model": "kimi-k2.6",
+                    "model": self.model or self.DEFAULT_MODEL,
                     "messages": [{"role": "user", "content": message}],
                     "max_tokens": 500,
-                    "temperature": 0.3,
+                    "temperature": self.temperature,
                 },
             )
             response.raise_for_status()

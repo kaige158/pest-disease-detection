@@ -21,4 +21,11 @@ public interface DiagnosisRecordRepository extends JpaRepository<DiagnosisRecord
     // 按版本和状态统计
     @Query("SELECT d.version, COUNT(d) FROM DiagnosisRecord d GROUP BY d.version")
     List<Object[]> countByVersion();
+
+    // ===== 删除用户时需要连带清理的数据 =====
+
+    /** 某用户的全部识别记录（删除前要先取出 image_url，磁盘文件也要一起删） */
+    List<DiagnosisRecord> findByUserId(Long userId);
+
+    long countByUserId(Long userId);
 }

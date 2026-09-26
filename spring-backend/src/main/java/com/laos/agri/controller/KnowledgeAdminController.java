@@ -4,6 +4,7 @@ import com.laos.agri.dto.ApiResponse;
 import com.laos.agri.entity.Disease;
 import com.laos.agri.entity.SourceType;
 import com.laos.agri.repository.DiseaseRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -11,9 +12,13 @@ import java.util.Map;
 
 /**
  * 知识库管理REST API — 专家后台AJAX调用
+ *
+ * <p>权限：知识库内容直接影响用户端展示，因此**只有 ADMIN 与 EXPERT 可改**；
+ * 农技员 TECHNICIAN 只读，避免未经审核的内容进入农户看到的界面。
  */
 @RestController
 @RequestMapping("/api/v1/admin")
+@PreAuthorize("hasAnyRole('ADMIN','EXPERT')")
 public class KnowledgeAdminController {
 
     private final DiseaseRepository diseaseRepo;

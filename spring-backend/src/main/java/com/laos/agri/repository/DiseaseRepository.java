@@ -12,7 +12,9 @@ public interface DiseaseRepository extends JpaRepository<Disease, Integer> {
     List<Disease> findByTypeAndVersionAndIsActiveTrue(String type, String version);
     List<Disease> findByNameZhContaining(String nameZh);
 
-    @Query(value = "SELECT * FROM disease WHERE version = :version AND is_active = true " +
+    // 原生 SQL 必须写全 core. 前缀：不带 schema 时按连接的默认 schema 解析，
+    // 而业务表都在 core 下（PostgreSQL 默认 search_path 也不含 core）
+    @Query(value = "SELECT * FROM core.disease WHERE version = :version AND is_active = true " +
            "AND to_tsvector('simple', COALESCE(name_zh,'') || ' ' || COALESCE(name_lo,'') || ' ' || " +
            "COALESCE(symptoms_zh,'') || ' ' || COALESCE(tags,'')) @@ plainto_tsquery('simple', :query)",
            nativeQuery = true)

@@ -32,22 +32,37 @@ import java.util.*;
 public class RecognitionController {
 
     private static final Logger log = LoggerFactory.getLogger(RecognitionController.class);
-    private static final String UPLOAD_DIR = "./uploads/recognition/";
     private static final ObjectMapper objectMapper = new ObjectMapper();
+
+    /** 识别图片在 uploads 下的子目录（与对外 URL /uploads/recognition/xxx.jpg 对应） */
+    private static final String RECOGNITION_SUBDIR = "recognition";
 
     private final AiServiceClient aiServiceClient;
     private final DiagnosisRecordRepository diagnosisRepo;
     private final DiseaseRepository diseaseRepo;
     private final CropRepository cropRepo;
 
+    /**
+     * 上传根目录 —— 必须用**绝对路径**
+     *
+     * <p>踩过的坑：{@code MultipartFile.transferTo(相对路径)} 在 Tomcat 下是相对
+     * **multipart 临时目录**解析的，不是相对进程工作目录。结果是目录建在了
+     * ./uploads/recognition，文件却被写到临时目录并在请求结束后消失 ——
+     * 表现为"识别记录有 image_url，但图片 404 且磁盘上找不到"。
+     */
+    private final Path uploadBase;
+
     public RecognitionController(AiServiceClient aiServiceClient,
                                   DiagnosisRecordRepository diagnosisRepo,
                                   DiseaseRepository diseaseRepo,
-                                  CropRepository cropRepo) {
+                                  CropRepository cropRepo,
+                                  @org.springframework.beans.factory.annotation.Value(
+                                          "${app.storage.upload-dir:./uploads}") String uploadDir) {
         this.aiServiceClient = aiServiceClient;
         this.diagnosisRepo = diagnosisRepo;
         this.diseaseRepo = diseaseRepo;
         this.cropRepo = cropRepo;
+        this.uploadBase = Paths.get(uploadDir).toAbsolutePath().normalize();
     }
 
     /**
@@ -236,10 +251,13 @@ public class RecognitionController {
 
     /**
      * 保存上传的图片到本地
+     *
+     * <p>路径必须绝对化后再写：`transferTo` 收到相对路径会按 multipart 临时目录解析，
+     * 文件会落在临时目录并在请求结束后被清掉（图片 URL 随即 404）。
      */
     private String saveImage(MultipartFile image, String taskId) {
         try {
-            Path uploadDir = Paths.get(UPLOAD_DIR);
+            Path uploadDir = uploadBase.resolve(RECOGNITION_SUBDIR);
             Files.createDirectories(uploadDir);
 
             String ext = ".jpg";
@@ -253,7 +271,7 @@ public class RecognitionController {
             Path filePath = uploadDir.resolve(filename);
             image.transferTo(filePath.toFile());
 
-            return "/uploads/recognition/" + filename;
+            return "/uploads/" + RECOGNITION_SUBDIR + "/" + filename;
         } catch (IOException e) {
             log.warn("图片保存失败: taskId={}, error={}", taskId, e.getMessage());
             return "";  // 保存失败不影响主流程

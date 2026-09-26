@@ -1,11 +1,14 @@
-import 'dart:convert';
-import 'dart:io';
-
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:laos_agri_app/core/config/app_config.dart';
+import 'package:laos_agri_app/core/network/api_client.dart';
+import 'package:laos_agri_app/shared/widgets/image_loader.dart';
 
 /// 识别结果展示页 — MVP核心页面
+///
+/// 数据来源两种形态都支持：
+///   1. 真实后端（Spring Boot `/recognition/identify`）：扁平字段，如 `disease_name_zh`
+///   2. 演示模式（`--dart-define=DEMO_MODE=true`）：包了一层 `results`
+/// 通过 [_pickResults] 统一取到字段所在的那一层。
 class ResultPage extends StatelessWidget {
   final Map<String, dynamic> resultData;
   final AppConfig config;
@@ -20,12 +23,29 @@ class ResultPage extends StatelessWidget {
     this.language = 'zh',
   });
 
-  String t(String zh, String lo) => language == 'lo' ? lo : zh;
+  bool get _isZh => language == 'zh';
+
+  String t(String zh, String lo) => _isZh ? zh : lo;
+
+  /// 按当前语言取字段：优先本语言，缺失时回退中文（老挝语内容可能尚未入库）
+  String _field(Map<String, dynamic> r, String base) {
+    final localised = r['${base}_$language'];
+    if (localised is String && localised.isNotEmpty) return localised;
+    final zh = r['${base}_zh'];
+    return zh is String ? zh : '';
+  }
+
+  /// 演示模式的数据包在 `results` 里，真实后端的数据是扁平的
+  static Map<String, dynamic> _pickResults(Map<String, dynamic> raw) {
+    final nested = raw['results'];
+    if (nested is Map) return Map<String, dynamic>.from(nested);
+    return raw;
+  }
 
   /// 提交用户反馈到后端 API
   Future<void> _submitFeedback(BuildContext context, String feedback) async {
-    final taskId = resultData['task_id'] ?? '';
-    if (taskId.toString().isEmpty) {
+    final taskId = (resultData['task_id'] ?? '').toString();
+    if (taskId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('任务ID缺失，无法提交反馈')),
       );
@@ -46,51 +66,54 @@ class ResultPage extends StatelessWidget {
     }
 
     try {
-      final dio = Dio(BaseOptions(
-        connectTimeout: const Duration(seconds: 5),
-        receiveTimeout: const Duration(seconds: 5),
-      ));
-      await dio.post(
-        'http://10.0.2.2:8080/api/v1/recognition/$taskId/feedback',
-        data: jsonEncode({
-          'feedback': feedback,
-          'note': feedback == 'confirmed' ? '用户确认结果正确' : '用户认为结果不正确',
-        }),
+      await ApiClient(config: config).submitFeedback(
+        taskId: taskId,
+        feedback: feedback,
+        note: feedback == 'confirmed' ? '用户确认结果正确' : '用户认为结果不正确',
       );
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(feedback == 'confirmed' ? '感谢反馈！结果已记录' : '已记录，将提交专家复核'),
-            backgroundColor: feedback == 'confirmed' ? Colors.green : Colors.orange,
-          ),
-        );
-      }
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(feedback == 'confirmed'
+              ? t('感谢反馈！结果已记录', 'ຂອບໃຈ! ບັນທຶກແລ້ວ')
+              : t('已记录，将提交专家复核', 'ບັນທຶກແລ້ວ ຈະສົ່ງໃຫ້ຜູ້ຊ່ຽວຊານກວດ')),
+          backgroundColor: feedback == 'confirmed' ? Colors.green : Colors.orange,
+        ),
+      );
+    } on ApiException catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${t('反馈提交失败', 'ສົ່ງຄຳຄິດເຫັນບໍ່ສຳເລັດ')}: ${e.message}'),
+            backgroundColor: Colors.red),
+      );
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('反馈提交失败: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${t('反馈提交失败', 'ສົ່ງຄຳຄິດເຫັນບໍ່ສຳເລັດ')}: $e'),
+            backgroundColor: Colors.red),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final results = resultData['results'] as Map<String, dynamic>? ?? resultData;
-    final disease = results['disease_name_zh'] ?? '未知';
-    final diseaseLo = results['disease_name_lo'] ?? '';
+    final results = _pickResults(resultData);
+    final disease = _field(results, 'disease_name');
+    final diseaseAlt = _isZh
+        ? (results['disease_name_lo'] ?? '').toString()
+        : (results['disease_name_zh'] ?? '').toString();
     final confidence = (results['confidence'] as num?)?.toDouble() ?? 0.0;
     final confidencePercent = (confidence * 100).toStringAsFixed(0);
-    final symptoms = results['symptoms_zh'] ?? '';
-    final symptomsLo = results['symptoms_lo'] ?? '';
-    final conditions = results['conditions_zh'] ?? '';
-    final severity = results['severity'] ?? 'moderate';
-    final prevention = results['prevention'] as Map<String, dynamic>? ?? {};
+    final symptoms = _field(results, 'symptoms');
+    final symptomsAlt = _isZh
+        ? (results['symptoms_lo'] ?? '').toString()
+        : (results['symptoms_zh'] ?? '').toString();
+    final conditions = _field(results, 'conditions');
+    final severity = (results['severity'] ?? 'moderate').toString();
+    final prevention = results['prevention'] is Map
+        ? Map<String, dynamic>.from(results['prevention'] as Map)
+        : <String, dynamic>{};
     final needExpert = results['need_expert_review'] == true;
-    // final confidenceLevel = results['confidence_level'] ?? 'medium';  // reserved for future use
 
     final confidenceColor = confidence >= 0.90
         ? Colors.green
@@ -108,20 +131,14 @@ class ResultPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 图片预览
+            // 图片预览（跨平台：Android/iOS 读文件，Web 读字节）
             Container(
               height: 200,
               width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.black,
-                image: imagePath.isNotEmpty
-                    ? DecorationImage(
-                        image: FileImage(File(imagePath)),
-                        fit: BoxFit.contain,
-                      )
-                    : null,
-              ),
+              decoration: const BoxDecoration(color: Colors.black),
+              child: buildLocalImage(imagePath, fit: BoxFit.contain),
             ),
+
 
             // 识别结果卡片
             Padding(
@@ -143,8 +160,8 @@ class ResultPage extends StatelessWidget {
                                 Text(disease,
                                     style: const TextStyle(
                                         fontSize: 22, fontWeight: FontWeight.bold)),
-                                if (diseaseLo.isNotEmpty)
-                                  Text(diseaseLo,
+                                if (diseaseAlt.isNotEmpty)
+                                  Text(diseaseAlt,
                                       style: TextStyle(
                                           fontSize: 16, color: Colors.grey[600])),
                               ],
@@ -204,13 +221,13 @@ class ResultPage extends StatelessWidget {
 
                       // 症状描述
                       if (symptoms.isNotEmpty) ...[
-                        _buildSectionTitle('症状描述', Icons.visibility),
+                        _buildSectionTitle(t('症状描述', 'ອາການ'), Icons.visibility),
                         const SizedBox(height: 4),
                         Text(symptoms, style: const TextStyle(fontSize: 14, height: 1.5)),
-                        if (symptomsLo.isNotEmpty)
+                        if (symptomsAlt.isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
-                            child: Text(symptomsLo,
+                            child: Text(symptomsAlt,
                                 style: TextStyle(fontSize: 14, color: Colors.grey[600])),
                           ),
                         const SizedBox(height: 16),
@@ -218,21 +235,21 @@ class ResultPage extends StatelessWidget {
 
                       // 发病条件
                       if (conditions.isNotEmpty) ...[
-                        _buildSectionTitle('发病条件', Icons.thermostat),
+                        _buildSectionTitle(t('发病条件', 'ເງື່ອນໄຂການເກີດພະຍາດ'), Icons.thermostat),
                         const SizedBox(height: 4),
                         Text(conditions, style: const TextStyle(fontSize: 14, height: 1.5)),
                         const SizedBox(height: 16),
                       ],
 
                       // 严重程度
-                      _buildSectionTitle('严重程度', Icons.warning),
+                      _buildSectionTitle(t('严重程度', 'ລະດັບຄວາມຮຸນແຮງ'), Icons.warning),
                       const SizedBox(height: 4),
-                      _SeverityBadge(severity: severity),
+                      _SeverityBadge(severity: severity, language: language),
                       const SizedBox(height: 16),
 
                       // 防控方案
                       if (prevention.isNotEmpty) ...[
-                        _buildSectionTitle('防控方案', Icons.healing),
+                        _buildSectionTitle(t('防控方案', 'ແຜນການປ້ອງກັນ'), Icons.healing),
                         const SizedBox(height: 8),
                         ..._buildPreventionList(prevention),
                         const SizedBox(height: 16),
@@ -286,10 +303,10 @@ class ResultPage extends StatelessWidget {
   List<Widget> _buildPreventionList(Map<String, dynamic> prevention) {
     final widgets = <Widget>[];
     final categories = {
-      'chemical': ('化学防治', Icons.science),
-      'biological': ('生物防治', Icons.eco),
-      'physical': ('物理防治', Icons.handyman),
-      'cultivation': ('栽培管理', Icons.agriculture),
+      'chemical': (t('化学防治', 'ການປ້ອງກັນທາງເຄມີ'), Icons.science),
+      'biological': (t('生物防治', 'ການປ້ອງກັນທາງຊີວະພາບ'), Icons.eco),
+      'physical': (t('物理防治', 'ການປ້ອງກັນທາງກາຍະພາບ'), Icons.handyman),
+      'cultivation': (t('栽培管理', 'ການຈັດການການປູກ'), Icons.agriculture),
     };
 
     for (final entry in categories.entries) {
@@ -313,6 +330,9 @@ class ResultPage extends StatelessWidget {
 
       for (final item in items) {
         if (item is Map) {
+          final map = Map<String, dynamic>.from(item);
+          final method = _localised(map, 'method');
+          final details = _localised(map, 'details');
           widgets.add(Padding(
             padding: const EdgeInsets.only(left: 20, bottom: 6),
             child: Row(
@@ -323,10 +343,9 @@ class ResultPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(item['method_zh'] ?? '',
-                          style: const TextStyle(fontSize: 14)),
-                      if (item['details_zh']?.isNotEmpty == true)
-                        Text(item['details_zh'],
+                      Text(method, style: const TextStyle(fontSize: 14)),
+                      if (details.isNotEmpty)
+                        Text(details,
                             style: TextStyle(
                                 fontSize: 13, color: Colors.grey[600])),
                     ],
@@ -341,24 +360,34 @@ class ResultPage extends StatelessWidget {
 
     return widgets;
   }
+
+  /// 防控条目字段：`method_zh/lo`、`details_zh/lo`
+  String _localised(Map<String, dynamic> map, String base) {
+    final localised = map['${base}_$language'];
+    if (localised is String && localised.isNotEmpty) return localised;
+    final zh = map['${base}_zh'];
+    return zh is String ? zh : '';
+  }
 }
 
 class _SeverityBadge extends StatelessWidget {
   final String severity;
-  const _SeverityBadge({required this.severity});
+  final String language;
+  const _SeverityBadge({required this.severity, this.language = 'zh'});
 
   @override
   Widget build(BuildContext context) {
+    final zh = language == 'zh';
     final (label, color) = switch (severity) {
-      'severe' => ('严重', Colors.red),
-      'moderate' => ('中等', Colors.orange),
-      _ => ('轻微', Colors.green),
+      'severe' => (zh ? '严重' : 'ຮຸນແຮງ', Colors.red),
+      'moderate' => (zh ? '中等' : 'ປານກາງ', Colors.orange),
+      _ => (zh ? '轻微' : 'ເລັກນ້ອຍ', Colors.green),
     };
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color),
       ),

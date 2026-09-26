@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:laos_agri_app/core/auth/user_session.dart';
 import 'package:laos_agri_app/core/config/app_config.dart';
+import 'package:laos_agri_app/features/auth/pages/profile_page.dart';
 import 'package:laos_agri_app/features/home/pages/home_page.dart';
 import 'package:laos_agri_app/features/recognition/pages/recognition_page.dart';
 import 'package:laos_agri_app/features/knowledge/pages/knowledge_list_page.dart';
 import 'package:laos_agri_app/features/assistant/pages/chat_page.dart';
-import 'package:laos_agri_app/features/settings/pages/settings_page.dart';
 import 'package:laos_agri_app/shared/widgets/scale_tap.dart';
 
 class LaosAgriApp extends StatelessWidget {
@@ -28,7 +29,12 @@ class LaosAgriApp extends StatelessWidget {
           scrolledUnderElevation: 0,
         ),
       ),
-      home: MainScreen(config: config),
+      // 登录态变化（登录 / 退出 / 令牌失效）时整体重建，
+      // 保证"我的"页与底部导航的登录态展示始终一致
+      home: ListenableBuilder(
+        listenable: UserSession.instance,
+        builder: (_, _) => MainScreen(config: config),
+      ),
     );
   }
 }
@@ -68,8 +74,8 @@ class _MainScreenState extends State<MainScreen> {
       RecognitionPage(config: widget.config, language: _lang),
       // Tab 3 — 知识库
       KnowledgeListPage(config: widget.config, language: _lang),
-      // Tab 4 — 我的（设置）
-      SettingsPage(
+      // Tab 4 — 我的（登录态 + 个人中心）
+      ProfilePage(
         config: widget.config,
         language: _lang,
         onLanguageChanged: _onLanguageChanged,
@@ -90,12 +96,19 @@ class _MainScreenState extends State<MainScreen> {
 
   String _tabLabel(int index) {
     final isZh = _lang == 'zh';
+    // 已登录时"我的"显示用户名，一眼看出当前是谁在使用
+    final session = UserSession.instance;
+    final myLabel = session.isLoggedIn
+        ? (session.profile?.nickname.isNotEmpty == true
+            ? session.profile!.nickname
+            : (isZh ? '我的' : 'ຂອງຂ້ອຍ'))
+        : (isZh ? '我的' : 'ຂອງຂ້ອຍ');
     return switch (index) {
       0 => isZh ? '首页' : 'ໜ້າຫຼັກ',
       1 => isZh ? 'AI助手' : 'ຜູ້ຊ່ວຍ AI',
       2 => isZh ? '拍照识别' : 'ຖ່າຍຮູບ',
       3 => isZh ? '知识库' : 'ຄວາມຮູ້',
-      4 => isZh ? '我的' : 'ຂອງຂ້ອຍ',
+      4 => myLabel,
       _ => '',
     };
   }

@@ -66,6 +66,13 @@
             <artifactId>spring-boot-starter-thymeleaf</artifactId>
         </dependency>
 
+        <!-- Thymeleaf + Spring Security 集成：模板里可用 sec:authorize 按角色显示/隐藏功能
+             （农技员只读，不应看到改不了的按钮） -->
+        <dependency>
+            <groupId>org.thymeleaf.extras</groupId>
+            <artifactId>thymeleaf-extras-springsecurity6</artifactId>
+        </dependency>
+
         <!-- Spring Validation -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

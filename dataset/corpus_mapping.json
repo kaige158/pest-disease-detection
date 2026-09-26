@@ -1,0 +1,452 @@
+{
+  "_spec": "6ps 语料 → 数据库标签映射表",
+  "_version": "1.0",
+  "_updated": "2026-09-26",
+  "_source_root": "raw_materials/6ps",
+  "_purpose": "把 raw_materials/6ps 的 12 个文件夹（49 张图）映射到 core.crop / core.disease / core.disease_image。本文件是人工维护的唯一映射来源，scripts/import_corpus.py 只读取不修改。",
+  "_rules": [
+    "图片先按所属文件夹确定病虫害类别，再按文件名关键词细分到具体作物（跨作物的类别必须细分）",
+    "core.disease 强制绑定单个 crop_id，因此一个跨作物的语料类别要拆成多条 disease 记录",
+    "害虫多为跨作物寄主，此处暂绑主要寄主作物，并在 tags 中标注“跨作物”",
+    "action=reuse 表示数据库已有同名条目，SQL 用子查询引用，不重复插入",
+    "所有新增病虫害以 approval_status=draft + is_active=FALSE 入库，内容补全并经专家审核后再激活",
+    "name_lo_draft 仅为交老挝语专家校核的建议译名，不写入数据库，禁止当作定稿使用"
+  ],
+
+  "new_categories": [
+    {
+      "key": "root_vegetable",
+      "version": "vegetable",
+      "name_zh": "根菜类",
+      "name_en": "Root Vegetables",
+      "name_lo_draft": "ໝວດພືດຫົວ",
+      "sort_order": 4,
+      "reason": "现有分类只有茄果类/瓜类/叶菜类，萝卜无处归属"
+    }
+  ],
+
+  "new_crops": [
+    {
+      "key": "broccoli",
+      "category": "leafy",
+      "name_zh": "西兰花",
+      "name_en": "Broccoli",
+      "name_lo_draft": "ຜັກບຣັອກໂຄລີ",
+      "scientific_name": "Brassica oleracea var. italica",
+      "description_zh": "西兰花属十字花科，喜冷凉气候，适宜温度15-22°C，老挝北部高海拔地区可种植，苗期易发生立枯病。",
+      "planting_info_zh": "播种期: 10-2月(北部高地) / 育苗移栽 / 株距40×50cm / 生长期90-120天"
+    },
+    {
+      "key": "cabbage_head",
+      "category": "leafy",
+      "name_zh": "甘蓝",
+      "name_en": "Cabbage",
+      "name_lo_draft": "ຜັກກາດຫົວ",
+      "scientific_name": "Brassica oleracea var. capitata",
+      "description_zh": "甘蓝（卷心菜）喜冷凉湿润，适宜温度15-20°C，老挝北部山区主栽蔬菜之一，霜霉病为主要叶部病害。",
+      "planting_info_zh": "播种期: 10-1月(北部) / 育苗移栽 / 株距40×40cm / 生长期80-120天"
+    },
+    {
+      "key": "mustard",
+      "category": "leafy",
+      "name_zh": "芥菜",
+      "name_en": "Leaf Mustard",
+      "name_lo_draft": "ຜັກກາດເຂົ້າຈີ່",
+      "scientific_name": "Brassica juncea",
+      "description_zh": "芥菜喜温暖湿润，适应性强，老挝全年可种植，雨季软腐病发生较重。",
+      "planting_info_zh": "播种期: 全年 / 直播或育苗移栽 / 株距25×30cm / 生长期45-70天"
+    },
+    {
+      "key": "radish",
+      "category": "root_vegetable",
+      "name_zh": "萝卜",
+      "name_en": "Radish",
+      "name_lo_draft": "ຫົວຜັກກາດ",
+      "scientific_name": "Raphanus sativus",
+      "description_zh": "萝卜为十字花科根菜，喜冷凉气候，适宜温度15-20°C，生长期短，是病毒病与黄曲条跳甲的常见寄主。",
+      "planting_info_zh": "播种期: 10-2月 / 直播 / 株距20×30cm / 生长期50-80天"
+    },
+    {
+      "key": "pumpkin",
+      "category": "cucurbit",
+      "name_zh": "南瓜",
+      "name_en": "Pumpkin",
+      "name_lo_draft": "ໝາກອຶ",
+      "scientific_name": "Cucurbita moschata",
+      "description_zh": "南瓜耐热耐旱，适应性强，老挝全年可种植，白粉病与病毒病为主要病害。",
+      "planting_info_zh": "播种期: 全年 / 直播 / 株距80×150cm / 生长期90-120天 / 需搭架或压蔓"
+    }
+  ],
+
+  "crops": {
+    "chili":    { "action": "reuse", "name_zh": "辣椒", "existing_note": "crop_id=1" },
+    "tomato":   { "action": "reuse", "name_zh": "番茄", "existing_note": "crop_id=2" },
+    "cucumber": { "action": "reuse", "name_zh": "黄瓜", "existing_note": "crop_id=3" },
+    "cabbage":  { "action": "reuse", "name_zh": "白菜", "existing_note": "crop_id=4，学名 Brassica rapa pekinensis，即大白菜" },
+    "broccoli":     { "action": "create", "name_zh": "西兰花", "key_ref": "broccoli" },
+    "cabbage_head": { "action": "create", "name_zh": "甘蓝",   "key_ref": "cabbage_head" },
+    "mustard":      { "action": "create", "name_zh": "芥菜",   "key_ref": "mustard" },
+    "radish":       { "action": "create", "name_zh": "萝卜",   "key_ref": "radish" },
+    "pumpkin":      { "action": "create", "name_zh": "南瓜",   "key_ref": "pumpkin" }
+  },
+
+  "categories": [
+    {
+      "key": "d01",
+      "folder": "任务1（1蔬菜猝倒、立枯病）",
+      "task": 1,
+      "task_type": "disease",
+      "label_zh": "蔬菜猝倒、立枯病",
+      "plant_part": "stem",
+      "targets": [
+        {
+          "disease_key": "chili_damping_off",
+          "name_zh": "辣椒猝倒病",
+          "name_en": "Damping-off of Chili",
+          "name_lo_draft": "ພະຍາດໂຄນເນົ່າໝາກເຜັດ",
+          "scientific_name": "Pythium spp.",
+          "type": "disease",
+          "severity_level": "severe",
+          "crop_key": "chili",
+          "action": "create",
+          "match_keywords": ["辣椒"],
+          "tags": "猝倒,苗期,茎基腐,土传,真菌,卵菌,跨作物",
+          "plant_part": "stem"
+        },
+        {
+          "disease_key": "broccoli_damping_off",
+          "name_zh": "西兰花立枯病",
+          "name_en": "Rhizoctonia Damping-off of Broccoli",
+          "name_lo_draft": "ພະຍາດໂຄນເນົ່າຜັກບຣັອກໂຄລີ",
+          "scientific_name": "Rhizoctonia solani",
+          "type": "disease",
+          "severity_level": "severe",
+          "crop_key": "broccoli",
+          "action": "create",
+          "match_keywords": ["西兰花"],
+          "tags": "立枯,苗期,茎基腐,土传,真菌,跨作物",
+          "plant_part": "stem"
+        }
+      ]
+    },
+    {
+      "key": "d02",
+      "folder": "任务1（2蔬菜霜霉病）",
+      "task": 1,
+      "task_type": "disease",
+      "label_zh": "蔬菜霜霉病",
+      "plant_part": "leaf",
+      "targets": [
+        {
+          "disease_key": "cabbage_downy_mildew",
+          "name_zh": "白菜霜霉病",
+          "name_en": "Downy Mildew of Chinese Cabbage",
+          "name_lo_draft": "ພະຍາດໃບຈຸດສີເຫຼືອງຜັກກາດຂາວ",
+          "scientific_name": "Hyaloperonospora brassicae",
+          "type": "disease",
+          "severity_level": "severe",
+          "crop_key": "cabbage",
+          "action": "create",
+          "match_keywords": ["大白菜"],
+          "tags": "霜霉,叶斑,叶背霉层,卵菌,高湿,十字花科",
+          "plant_part": "leaf"
+        },
+        {
+          "disease_key": "cabbage_head_downy_mildew",
+          "name_zh": "甘蓝霜霉病",
+          "name_en": "Downy Mildew of Cabbage",
+          "name_lo_draft": "ພະຍາດໃບຈຸດສີເຫຼືອງຜັກກາດຫົວ",
+          "scientific_name": "Hyaloperonospora brassicae",
+          "type": "disease",
+          "severity_level": "moderate",
+          "crop_key": "cabbage_head",
+          "action": "create",
+          "match_keywords": ["卷心菜", "甘蓝"],
+          "tags": "霜霉,叶斑,叶背霉层,卵菌,高湿,十字花科",
+          "plant_part": "leaf"
+        }
+      ]
+    },
+    {
+      "key": "d03",
+      "folder": "任务1（3瓜类白粉病）",
+      "task": 1,
+      "task_type": "disease",
+      "label_zh": "瓜类白粉病",
+      "plant_part": "leaf",
+      "targets": [
+        {
+          "disease_key": "pumpkin_powdery_mildew",
+          "name_zh": "南瓜白粉病",
+          "name_en": "Powdery Mildew of Pumpkin",
+          "name_lo_draft": "ພະຍາດຂີ້ຝຸ່ນຂາວໝາກອຶ",
+          "scientific_name": "Podosphaera xanthii",
+          "type": "disease",
+          "severity_level": "moderate",
+          "crop_key": "pumpkin",
+          "action": "create",
+          "match_keywords": ["南瓜"],
+          "tags": "白粉,叶面白粉,真菌,干燥高湿交替,瓜类,跨作物",
+          "plant_part": "leaf"
+        }
+      ]
+    },
+    {
+      "key": "d04",
+      "folder": "任务1（4白菜软腐病）",
+      "task": 1,
+      "task_type": "disease",
+      "label_zh": "白菜软腐病",
+      "plant_part": "whole",
+      "targets": [
+        {
+          "disease_key": "cabbage_soft_rot",
+          "name_zh": "白菜软腐病",
+          "type": "disease",
+          "action": "reuse",
+          "crop_key": "cabbage",
+          "match_keywords": ["白菜"],
+          "tags": "软腐,细菌,根茎腐烂,高湿,连作",
+          "plant_part": "whole"
+        },
+        {
+          "disease_key": "mustard_soft_rot",
+          "name_zh": "芥菜软腐病",
+          "name_en": "Bacterial Soft Rot of Leaf Mustard",
+          "name_lo_draft": "ພະຍາດເນົ່າອ່ອນຜັກກາດເຂົ້າຈີ່",
+          "scientific_name": "Pectobacterium carotovorum",
+          "type": "disease",
+          "severity_level": "severe",
+          "crop_key": "mustard",
+          "action": "create",
+          "match_keywords": ["芥菜"],
+          "tags": "软腐,细菌,根茎腐烂,高湿,连作,伤口侵染",
+          "plant_part": "whole"
+        }
+      ]
+    },
+    {
+      "key": "d05",
+      "folder": "任务1（5茄科蔬菜青枯病）",
+      "task": 1,
+      "task_type": "disease",
+      "label_zh": "茄科蔬菜青枯病",
+      "plant_part": "whole",
+      "targets": [
+        {
+          "disease_key": "tomato_bacterial_wilt",
+          "name_zh": "番茄青枯病",
+          "type": "disease",
+          "action": "reuse",
+          "crop_key": "tomato",
+          "match_keywords": ["番茄"],
+          "tags": "青枯,细菌性萎蔫,维管束变褐,菌脓,土传,跨作物",
+          "plant_part": "whole"
+        }
+      ]
+    },
+    {
+      "key": "d06",
+      "folder": "任务1（6蔬菜病毒病）",
+      "task": 1,
+      "task_type": "disease",
+      "label_zh": "蔬菜病毒病",
+      "plant_part": "leaf",
+      "targets": [
+        {
+          "disease_key": "tomato_virus",
+          "name_zh": "番茄病毒病",
+          "name_en": "Tomato Viral Disease",
+          "name_lo_draft": "ພະຍາດໄວຣັສໝາກເລັ່ນ",
+          "scientific_name": "Tomato mosaic virus / Cucumber mosaic virus complex",
+          "type": "disease",
+          "severity_level": "severe",
+          "crop_key": "tomato",
+          "action": "create",
+          "match_keywords": ["番茄"],
+          "tags": "病毒,花叶,皱缩,畸形,蚜虫传播,无药剂可治",
+          "plant_part": "leaf"
+        },
+        {
+          "disease_key": "radish_virus",
+          "name_zh": "萝卜病毒病",
+          "name_en": "Radish Viral Disease",
+          "name_lo_draft": "ພະຍາດໄວຣັສຫົວຜັກກາດ",
+          "scientific_name": "Turnip mosaic virus",
+          "type": "disease",
+          "severity_level": "moderate",
+          "crop_key": "radish",
+          "action": "create",
+          "match_keywords": ["萝卜"],
+          "tags": "病毒,花叶,矮化,蚜虫传播,十字花科,无药剂可治",
+          "plant_part": "leaf"
+        },
+        {
+          "disease_key": "pumpkin_virus",
+          "name_zh": "南瓜病毒病",
+          "name_en": "Pumpkin Viral Disease",
+          "name_lo_draft": "ພະຍາດໄວຣັສໝາກອຶ",
+          "scientific_name": "Cucumber mosaic virus / Zucchini yellow mosaic virus",
+          "type": "disease",
+          "severity_level": "severe",
+          "crop_key": "pumpkin",
+          "action": "create",
+          "match_keywords": ["南瓜"],
+          "tags": "病毒,花叶,蕨叶,畸形,蚜虫传播,瓜类,无药剂可治",
+          "plant_part": "leaf"
+        }
+      ]
+    },
+    {
+      "key": "d07",
+      "folder": "任务1（7蔬菜根结线虫病）",
+      "task": 1,
+      "task_type": "disease",
+      "label_zh": "蔬菜根结线虫病",
+      "plant_part": "root",
+      "targets": [
+        {
+          "disease_key": "tomato_root_knot_nematode",
+          "name_zh": "番茄根结线虫病",
+          "name_en": "Root-knot Nematode of Tomato",
+          "name_lo_draft": "ພະຍາດໜອນຮາກໝາກເລັ່ນ",
+          "scientific_name": "Meloidogyne incognita",
+          "type": "disease",
+          "severity_level": "severe",
+          "crop_key": "tomato",
+          "action": "create",
+          "match_keywords": ["番茄", "根结"],
+          "tags": "根结线虫,根部瘤状,土传,连作,沙壤土",
+          "plant_part": "root"
+        }
+      ]
+    },
+    {
+      "key": "p01",
+      "folder": "任务2（1菜粉蝶）",
+      "task": 2,
+      "task_type": "pest",
+      "label_zh": "菜粉蝶",
+      "plant_part": "leaf",
+      "targets": [
+        {
+          "disease_key": "cabbage_white_butterfly",
+          "name_zh": "菜粉蝶(白菜)",
+          "name_en": "Cabbage White Butterfly on Chinese Cabbage",
+          "name_lo_draft": "ໜອນຜີເສື້ອຂາວ ຜັກກາດຂາວ",
+          "scientific_name": "Pieris rapae",
+          "type": "pest",
+          "severity_level": "moderate",
+          "crop_key": "cabbage",
+          "action": "create",
+          "match_keywords": [],
+          "host_assumed": true,
+          "tags": "菜青虫,咀嚼式口器,叶穿孔,鳞翅目,十字花科,跨作物",
+          "plant_part": "leaf"
+        }
+      ]
+    },
+    {
+      "key": "p02",
+      "folder": "任务2（2小菜蛾）",
+      "task": 2,
+      "task_type": "pest",
+      "label_zh": "小菜蛾",
+      "plant_part": "leaf",
+      "targets": [
+        {
+          "disease_key": "diamondback_moth",
+          "name_zh": "小菜蛾(白菜)",
+          "name_en": "Diamondback Moth on Chinese Cabbage",
+          "name_lo_draft": "ໜອນໃຍເພັດ ຜັກກາດຂາວ",
+          "scientific_name": "Plutella xylostella",
+          "type": "pest",
+          "severity_level": "severe",
+          "crop_key": "cabbage",
+          "action": "create",
+          "match_keywords": [],
+          "host_assumed": true,
+          "tags": "小菜蛾,钻食,窗孔状,鳞翅目,十字花科,抗药性强,跨作物",
+          "plant_part": "leaf"
+        }
+      ]
+    },
+    {
+      "key": "p03",
+      "folder": "任务2（3黄曲条跳甲）",
+      "task": 2,
+      "task_type": "pest",
+      "label_zh": "黄曲条跳甲",
+      "plant_part": "leaf",
+      "targets": [
+        {
+          "disease_key": "striped_flea_beetle",
+          "name_zh": "黄曲条跳甲(萝卜)",
+          "name_en": "Striped Flea Beetle on Radish",
+          "name_lo_draft": "ແມງໝັກລາຍເຫຼືອງ ຫົວຜັກກາດ",
+          "scientific_name": "Phyllotreta striolata",
+          "type": "pest",
+          "severity_level": "severe",
+          "crop_key": "radish",
+          "action": "create",
+          "match_keywords": [],
+          "host_assumed": true,
+          "tags": "跳甲,苗期毁苗,叶面小孔,根部咬痕,鞘翅目,十字花科,跨作物",
+          "plant_part": "leaf"
+        }
+      ]
+    },
+    {
+      "key": "p04",
+      "folder": "任务2（4温室白粉虱）",
+      "task": 2,
+      "task_type": "pest",
+      "label_zh": "温室白粉虱",
+      "plant_part": "leaf",
+      "targets": [
+        {
+          "disease_key": "greenhouse_whitefly",
+          "name_zh": "温室白粉虱(黄瓜)",
+          "name_en": "Greenhouse Whitefly on Cucumber",
+          "name_lo_draft": "ແມງໄມ້ຂາວ ໝາກແຕງ",
+          "scientific_name": "Trialeurodes vaporariorum",
+          "type": "pest",
+          "severity_level": "moderate",
+          "crop_key": "cucumber",
+          "action": "create",
+          "match_keywords": [],
+          "host_assumed": true,
+          "tags": "白粉虱,叶背密集,蜜露,烟霉,病毒媒介,大棚,跨作物",
+          "plant_part": "leaf"
+        }
+      ]
+    },
+    {
+      "key": "p05",
+      "folder": "任务2（5侧多食跗线螨）",
+      "task": 2,
+      "task_type": "pest",
+      "label_zh": "侧多食跗线螨",
+      "plant_part": "leaf",
+      "targets": [
+        {
+          "disease_key": "broad_mite",
+          "name_zh": "侧多食跗线螨(辣椒)",
+          "name_en": "Broad Mite on Chili",
+          "name_lo_draft": "ໄຮ້ແມງມຸມ ໝາກເຜັດ",
+          "scientific_name": "Polyphagotarsonemus latus",
+          "type": "pest",
+          "severity_level": "moderate",
+          "crop_key": "chili",
+          "action": "create",
+          "match_keywords": [],
+          "host_assumed": true,
+          "tags": "跗线螨,嫩叶畸形,叶背褐变,高温干燥,跨作物",
+          "plant_part": "leaf"
+        }
+      ]
+    }
+  ]
+}
+
+

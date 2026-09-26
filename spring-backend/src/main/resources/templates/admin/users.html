@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:lang="${param.lang != null ? param.lang : (uiLang != null ? uiLang : 'zh')}">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="#{users.title} + ' — ' + #{app.name}">用户管理</title>
+    <link rel="stylesheet" href="/css/admin.css">
+    <th:block th:replace="~{admin/fragments :: adminStyles}"></th:block>
+    <style>
+        .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+        .toolbar input, .toolbar select {
+            padding: 8px 11px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;
+        }
+        .toolbar input { width: 240px; }
+        table { width: 100%; border-collapse: collapse; background: #fff; }
+        th, td { padding: 11px 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
+        th { background: #FAFAFA; color: #555; font-weight: 600; white-space: nowrap; }
+        tr:hover td { background: #F9FDF9; }
+        .role-tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #E8F5E9; color: #2E7D32; white-space: nowrap; }
+        .role-ADMIN { background: #EDE7F6; color: #4527A0; }
+        .role-EXPERT { background: #E3F2FD; color: #0D47A1; }
+        .role-TECHNICIAN { background: #FFF3E0; color: #E65100; }
+        .state-on { color: #2E7D32; font-weight: 600; }
+        .state-off { color: #C62828; font-weight: 600; }
+        .row-actions button { font-size: 12px; padding: 4px 9px; margin-right: 5px; cursor: pointer;
+            border: 1px solid #ddd; border-radius: 5px; background: #fff; white-space: nowrap; }
+        /* 操作列按钮不换行（老挝语按钮文案较长，否则会折成两行把行高撑开） */
+        .row-actions { white-space: nowrap; }
+        .row-actions button:hover { border-color: #4CAF50; color: #2E7D32; }
+        /* 删除是危险操作：视觉上必须和普通按钮区分开，避免误点 */
+        .row-actions button.danger { color: #C62828; border-color: #FFCDD2; }
+        .row-actions button.danger:hover { background: #FFEBEE; border-color: #E57373; color: #B71C1C; }
+        .pager { margin-top: 14px; display: flex; gap: 10px; align-items: center; font-size: 13px; color: #666; }
+        .stat-mini { display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+        .stat-mini div { background: #fff; border: 1px solid #eee; border-radius: 8px; padding: 10px 16px; font-size: 13px; }
+        .stat-mini b { display: block; font-size: 20px; color: #2E7D32; }
+        .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none;
+            align-items: center; justify-content: center; z-index: 50; }
+        .modal { background: #fff; border-radius: 10px; padding: 22px; width: 380px; }
+        .modal h3 { margin-top: 0; }
+        .modal input, .modal select { width: 100%; padding: 9px 11px; border: 1px solid #ddd;
+            border-radius: 6px; font-size: 14px; box-sizing: border-box; margin-bottom: 12px; }
+
+        /* ---------- 角色权限说明 ---------- */
+        .perm-card { background: #fff; border: 1px solid #eee; border-radius: 8px;
+            margin-bottom: 14px; overflow: hidden; }
+        .perm-card > summary { cursor: pointer; padding: 12px 16px; font-size: 14px;
+            font-weight: 600; color: #2E7D32; background: #F6FBF6; list-style: none; }
+        .perm-card > summary::-webkit-details-marker { display: none; }
+        .perm-card > summary::before { content: '▸ '; }
+        .perm-card[open] > summary::before { content: '▾ '; }
+        .perm-body { padding: 4px 16px 16px; }
+        .perm-sub { font-size: 12px; color: #777; margin: 6px 0 12px; line-height: 1.6; }
+        table.perm { width: 100%; border-collapse: collapse; }
+        table.perm th, table.perm td { padding: 8px 10px; font-size: 13px;
+            border-bottom: 1px solid #f0f0f0; text-align: left; }
+        table.perm th { background: #FAFAFA; color: #555; white-space: nowrap; }
+        table.perm th.role-col, table.perm td.role-col { text-align: center; width: 92px; }
+        table.perm td.yes { color: #2E7D32; font-weight: 700; text-align: center; }
+        table.perm td.no { color: #CCC; text-align: center; }
+        .role-summary { font-size: 12px; color: #666; margin: 4px 0 10px; }
+        /* 弹窗里的角色说明：老挝语较长，允许换行 */
+        #roleDetail { max-height: 210px; overflow-y: auto; border: 1px solid #eee;
+            border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; background: #FCFCFC; }
+        #roleDetail h4 { margin: 0 0 6px; font-size: 13px; color: #2E7D32; }
+        #roleDetail .no-title { color: #999; margin-top: 10px; }
+        #roleDetail ul { margin: 0; padding-left: 20px; }
+        #roleDetail li { font-size: 12px; color: #555; line-height: 1.7; }
+        #roleDetail .empty { font-size: 12px; color: #999; }
+    </style>
+</head>
+<body>
+    <nav th:replace="~{admin/fragments :: sidebar('users')}"></nav>
+
+    <div class="main">
+        <div th:replace="~{admin/fragments :: topbar(#{users.title}, '👥')}"></div>
+        <div th:replace="~{admin/fragments :: passwordBanner}"></div>
+
+        <div class="stat-mini" id="stats">
+            <div th:text="#{common.loading}">加载中…</div>
+        </div>
+
+        <!-- 角色权限说明：内容由后端 Permission 矩阵生成，与真实拦截规则同源 -->
+        <details class="perm-card" open>
+            <summary th:text="#{perm.title}">角色权限说明</summary>
+            <div class="perm-body">
+                <div class="perm-sub" th:text="#{perm.subtitle}"></div>
+                <table class="perm">
+                    <thead>
+                    <tr>
+                        <th th:text="#{perm.colFeature}">功能</th>
+                        <th class="role-col" th:each="rc : ${roleCards}"
+                            th:text="${rc.label}">角色</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="row : ${permissionRows}">
+                        <td th:text="${row.label}">功能</td>
+                        <td th:each="rc : ${roleCards}"
+                            th:classappend="${row.allows(rc)} ? 'yes' : 'no'"
+                            th:text="${row.allows(rc)} ? '✓' : '—'">✓</td>
+                    </tr>
+                    </tbody>
+                </table>
+                <!-- 每个角色一句话定位：说明"这个角色是干什么的" -->
+                <div style="margin-top:14px;">
+                    <div th:each="rc : ${roleCards}" class="role-summary">
+                        <b th:text="${rc.label}">角色</b>
+                        <span> — </span>
+                        <span th:text="${rc.summary}"></span>
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <div class="toolbar">
+            <input id="q-keyword" th:placeholder="#{users.keywordPlaceholder}"
+                   onkeydown="if(event.key==='Enter')search()">
+            <select id="q-role" onchange="search()">
+                <option value="" th:text="#{users.allRoles}">全部角色</option>
+                <option value="FARMER" th:text="#{role.FARMER}">农户</option>
+                <option value="TECHNICIAN" th:text="#{role.TECHNICIAN}">技术员</option>
+                <option value="EXPERT" th:text="#{role.EXPERT}">专家</option>
+                <option value="ADMIN" th:text="#{role.ADMIN}">管理员</option>
+            </select>
+            <button class="btn btn-primary" onclick="search()" th:text="'🔍 ' + #{common.search}">搜索</button>
+            <button class="btn" style="background:#eee;" onclick="resetSearch()" th:text="#{common.reset}">重置</button>
+        </div>
+
+        <div class="card" style="padding:0;overflow:hidden;">
+            <table>
+                <thead>
+                <tr>
+                    <th style="width:60px;" th:text="#{knowledge.id}">ID</th>
+                    <th th:text="#{users.phone}">手机号</th>
+                    <th th:text="#{users.nickname}">昵称</th>
+                    <th style="width:110px;" th:text="#{common.role}">角色</th>
+                    <th style="width:80px;" th:text="#{common.status}">状态</th>
+                    <th style="width:150px;" th:text="#{users.lastLogin}">最近登录</th>
+                    <th style="width:90px;" th:text="#{users.loginCount}">登录次数</th>
+                    <th style="width:300px;" th:text="#{common.actions}">操作</th>
+                </tr>
+                </thead>
+                <tbody id="rows">
+                <tr><td colspan="8" style="text-align:center;color:#999;" th:text="#{common.loading}">加载中…</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pager">
+            <button class="btn" style="background:#eee;" onclick="prevPage()" th:text="#{users.prevPage}">上一页</button>
+            <span id="pageInfo"></span>
+            <button class="btn" style="background:#eee;" onclick="nextPage()" th:text="#{users.nextPage}">下一页</button>
+            <span id="totalInfo"></span>
+        </div>
+    </div>
+
+    <!-- 重置密码弹窗 -->
+    <div class="modal-mask" id="pwdMask">
+        <div class="modal">
+            <h3 th:text="#{users.resetPwdTitle}">重置密码</h3>
+            <div style="font-size:13px;color:#666;margin-bottom:10px;" id="pwdUser"></div>
+            <input id="pwdNew" type="text" th:placeholder="#{users.resetPwdHint}">
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button class="btn" style="background:#eee;" onclick="closePwd()" th:text="#{common.cancel}">取消</button>
+                <button class="btn btn-primary" onclick="doResetPwd()" th:text="#{common.confirm}">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 角色调整弹窗 -->
+    <div class="modal-mask" id="roleMask">
+        <div class="modal" style="width:420px;">
+            <h3 th:text="#{users.roleTitle}">调整角色</h3>
+            <div style="font-size:13px;color:#666;margin-bottom:10px;" id="roleUser"></div>
+            <select id="roleNew" onchange="showRoleDetail()">
+                <option value="FARMER" th:text="#{role.FARMER}">农户</option>
+                <option value="TECHNICIAN" th:text="#{role.TECHNICIAN}">技术员</option>
+                <option value="EXPERT" th:text="#{role.EXPERT}">专家</option>
+                <option value="ADMIN" th:text="#{role.ADMIN}">管理员</option>
+            </select>
+
+            <!--
+              权限明细：每个角色一块，服务端按 Permission 矩阵渲染好，
+              JS 只负责显示当前选中角色的那一块（不在前端拼文案，避免中老文案漂移）
+            -->
+            <div id="roleDetail">
+                <div class="role-detail" th:each="rc : ${roleCards}" th:attr="data-role=${rc.code}"
+                     style="display:none;">
+                    <h4 th:text="${rc.label}">角色</h4>
+                    <div class="role-summary" th:text="${rc.summary}"></div>
+                    <div th:if="${!#lists.isEmpty(rc.can)}">
+                        <h4 th:text="#{perm.canDo}">可以做</h4>
+                        <ul>
+                            <li th:each="c : ${rc.can}" th:text="${c}"></li>
+                        </ul>
+                    </div>
+                    <div th:if="${!#lists.isEmpty(rc.cannot)}">
+                        <h4 class="no-title" th:text="#{perm.cannotDo}">不可以做</h4>
+                        <ul>
+                            <li th:each="c : ${rc.cannot}" th:text="${c}"></li>
+                        </ul>
+                    </div>
+                    <div class="empty" th:if="${#lists.isEmpty(rc.can)}"
+                         th:text="#{perm.farmerNoBackend}"></div>
+                </div>
+            </div>
+
+            <div style="font-size:12px;color:#999;margin-bottom:12px;" th:text="#{users.roleHint}"></div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button class="btn" style="background:#eee;" onclick="closeRole()" th:text="#{common.cancel}">取消</button>
+                <button class="btn btn-primary" onclick="doChangeRole()" th:text="#{common.confirm}">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 查看完整手机号弹窗（需二次验证管理员密码 + 审计留痕） -->
+    <div class="modal-mask" id="revealMask">
+        <div class="modal">
+            <h3 th:text="#{users.revealTitle}">查看完整手机号</h3>
+            <div style="font-size:13px;color:#666;margin-bottom:10px;" id="revealUser"></div>
+            <div style="background:#FFF8E1;border:1px solid #FFE082;border-radius:6px;padding:10px;
+                        font-size:12px;color:#8D6E00;margin-bottom:12px;"
+                 th:text="#{users.revealSecurityNote}">手机号属于个人信息，查看需再次验证你的登录密码，本次操作会记入审计日志。</div>
+            <input id="revealPwd" type="password" autocomplete="current-password"
+                   th:placeholder="#{users.revealPasswordPlaceholder}">
+            <div id="revealResult"
+                 style="display:none;background:#E8F5E9;border:1px solid #A5D6A7;border-radius:6px;
+                        padding:10px 12px;font-size:15px;font-weight:600;color:#1B5E20;margin-bottom:12px;"></div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button class="btn" style="background:#eee;" onclick="closeReveal()" th:text="#{common.close}">关闭</button>
+                <button class="btn btn-primary" id="revealBtn" onclick="doReveal()"
+                        th:text="#{users.revealSubmit}">验证并查看</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除用户弹窗：只删账号，平台数据（识别记录/图片/训练资产）匿名保留 -->
+    <div class="modal-mask" id="delMask">
+        <div class="modal" style="width:480px;">
+            <h3 style="color:#C62828;" th:text="#{users.deleteTitle}">删除用户账号</h3>
+            <div style="font-size:13px;color:#666;margin-bottom:10px;" id="delUser"></div>
+
+            <div style="background:#FFF8E1;border:1px solid #FFE082;border-radius:6px;padding:10px;
+                        font-size:12px;color:#8D6E00;margin-bottom:12px;line-height:1.7;
+                        white-space:pre-line;"
+                 th:text="#{users.deleteWarning}">只删除账号本身。</div>
+
+            <div style="font-size:13px;font-weight:600;color:#C62828;margin-bottom:6px;"
+                 th:text="#{users.deleteWillDelete}">将删除</div>
+            <div id="delPreview" style="font-size:13px;color:#444;background:#FAFAFA;border:1px solid #eee;
+                        border-radius:6px;padding:10px 12px;margin-bottom:10px;line-height:1.9;"></div>
+
+            <div style="font-size:13px;font-weight:600;color:#2E7D32;margin-bottom:6px;"
+                 th:text="#{users.deleteWillKeep}">将保留</div>
+            <div id="delKeep" style="font-size:13px;color:#444;background:#F6FBF6;border:1px solid #DCEDC8;
+                        border-radius:6px;padding:10px 12px;margin-bottom:12px;line-height:1.9;"></div>
+
+            <div id="delBlocked" style="display:none;background:#FFF8E1;border:1px solid #FFE082;
+                        border-radius:6px;padding:10px;font-size:12px;color:#8D6E00;margin-bottom:12px;"></div>
+
+            <input id="delPwd" type="password" autocomplete="current-password"
+                   th:placeholder="#{users.deletePasswordPlaceholder}">
+            <div id="delResult" style="display:none;font-size:12px;margin-bottom:10px;"></div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button class="btn" style="background:#eee;" onclick="closeDelete()" th:text="#{common.cancel}">取消</button>
+                <button class="btn" id="delBtn" onclick="doDelete()"
+                        style="background:#C62828;color:#fff;"
+                        th:text="#{users.deleteConfirmBtn}">确认删除账号</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="i18n" style="display:none;"
+         th:attr="data-total=#{users.total},
+                  data-page=#{users.page},
+                  data-page=#{users.page},
+                  data-total-count=#{users.totalCount},
+                  data-reveal-title=#{users.revealTitle},
+                  data-reveal-user=#{users.revealUser},
+                  data-reveal-submit=#{users.revealSubmit},
+                  data-reveal-failed=#{users.revealFailed},
+                  data-reveal-phone=#{users.revealPhone},
+                  data-reveal-pwd-empty=#{users.revealPasswordPlaceholder},
+                  data-reset-pwd-title=#{users.resetPwdTitle},
+                  data-reset-pwd-hint=#{users.resetPwdHint},
+                  data-reset-pwd-user=#{users.resetPwdUser},
+                  data-reset-pwd-done=#{users.resetPwdDone},
+                  data-role-title=#{users.roleTitle},
+                  data-role-hint=#{users.roleHint},
+                  data-role-done=#{users.roleDone},
+                  data-no-data=#{common.noData},
+                  data-loading=#{common.loading},
+                  data-disable=#{common.disable},
+                  data-enable=#{common.enable},
+                  data-enabled=#{common.enabled},
+                  data-disabled=#{common.disabled},
+                  data-disable-confirm=#{users.disableConfirm},
+                  data-enable-confirm=#{users.enableConfirm},
+                  data-toggle-done=#{users.toggleDone},
+                  data-change-role=#{users.changeRole},
+                  data-reset-password=#{users.resetPassword},
+                  data-role-farmer=#{role.FARMER},
+                  data-role-technician=#{role.TECHNICIAN},
+                  data-role-expert=#{role.EXPERT},
+                  data-role-admin=#{role.ADMIN},
+                  data-role-current=#{users.roleCurrent},
+                  data-reset-pwd-too-short=#{pwd.tooShort},
+                  data-failed=#{common.failed},
+                  data-delete=#{users.delete},
+                  data-delete-title=#{users.deleteTitle},
+                  data-delete-user=#{users.deleteUser},
+                  data-delete-will-delete=#{users.deleteWillDelete},
+                  data-delete-will-keep=#{users.deleteWillKeep},
+                  data-delete-account=#{users.deleteAccount},
+                  data-delete-diag=#{users.deleteDiag},
+                  data-delete-images=#{users.deleteImages},
+                  data-delete-assets=#{users.deleteAssets},
+                  data-delete-assets-ready=#{users.deleteAssetsReady},
+                  data-delete-codes=#{users.deleteCodes},
+                  data-delete-audit-kept=#{users.deleteAuditKept},
+                  data-delete-pwd-placeholder=#{users.deletePasswordPlaceholder},
+                  data-delete-confirm=#{users.deleteConfirmBtn},
+                  data-delete-pwd-empty=#{users.deletePasswordEmpty},
+                  data-delete-done=#{users.deleteDone},
+                  data-delete-failed=#{users.deleteFailed},
+                  data-delete-blocked=#{users.deleteBlocked},
+                  data-delete-loading=#{common.loading}"></div>
+
+    <script src="/js/admin.js"></script>
+    <script src="/js/admin-users.js?v=20260927b"></script>
+</body>
+</html>

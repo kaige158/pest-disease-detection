@@ -5,6 +5,7 @@
 /// - 直接用Dart代码内置JSON数据
 /// - 数据随APP打包，首次启动加载到内存
 /// - 联网时通过API增量更新
+library;
 
 class OfflineKnowledge {
   static final OfflineKnowledge _instance = OfflineKnowledge._();

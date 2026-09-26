@@ -1,93 +1,82 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" th:lang="${param.lang != null ? param.lang : (uiLang != null ? uiLang : 'zh')}">
 <head>
     <meta charset="UTF-8">
-    <title>数据统计 — 农业AI平台</title>
+    <title th:text="#{stats.title} + ' — ' + #{app.name}">数据统计</title>
     <link rel="stylesheet" href="/css/admin.css">
+    <th:block th:replace="~{admin/fragments :: adminStyles}"></th:block>
 </head>
 <body>
-    <nav class="sidebar">
-        <div class="logo">🌱 农业AI平台<small>专家管理后台</small></div>
-        <a href="/admin/dashboard"><span class="icon">📊</span> <span>仪表盘</span></a>
-        <a href="/admin/review"><span class="icon">🔍</span> <span>AI审核中心</span></a>
-        <a href="/admin/knowledge"><span class="icon">📚</span> <span>知识库管理</span></a>
-        <a href="/admin/stats" class="active"><span class="icon">📈</span> <span>数据统计</span></a>
-    </nav>
+    <nav th:replace="~{admin/fragments :: sidebar('stats')}"></nav>
 
     <div class="main">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-            <h2>📈 数据统计</h2>
-        </div>
+        <div th:replace="~{admin/fragments :: topbar(#{stats.title}, '📈')}"></div>
+        <div th:replace="~{admin/fragments :: passwordBanner}"></div>
 
-        <div class="card">
-            <div class="card-header">📊 数据概览</div>
-            <div class="stats-row">
-                <div class="stat-card">
-                    <div class="number" id="totalDiagnoses">-</div>
-                    <div class="label">累计识别</div>
-                </div>
-                <div class="stat-card">
-                    <div class="number" id="pendingCount">-</div>
-                    <div class="label">待审核</div>
-                </div>
-                <div class="stat-card">
-                    <div class="number" id="totalDiseases">-</div>
-                    <div class="label">病虫害条目</div>
-                </div>
-                <div class="stat-card">
-                    <div class="number" id="usableImages">-</div>
-                    <div class="label">可用图片</div>
-                </div>
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="number" id="totalDiagnoses">-</div>
+                <div class="label" th:text="#{dashboard.totalDiagnoses}">累计识别次数</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="pendingCount" style="color:#FF9800">-</div>
+                <div class="label" th:text="#{dashboard.pendingReview}">待审核</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="totalDiseases">-</div>
+                <div class="label" th:text="#{dashboard.totalDiseases}">病虫害条目</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="usableImages" style="color:#1565C0">-</div>
+                <div class="label" th:text="#{dashboard.usableImages}">可用图片数据</div>
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-header">📈 版本统计</div>
+        <div class="card" style="margin-top:20px;">
+            <div class="card-header">📈 <span th:text="#{knowledge.version}">版本</span></div>
             <table>
                 <thead>
-                    <tr><th>版本</th><th>识别次数</th></tr>
+                    <tr>
+                        <th th:text="#{knowledge.version}">版本</th>
+                        <th th:text="#{dashboard.totalDiagnoses}">识别次数</th>
+                    </tr>
                 </thead>
                 <tbody id="versionStats">
-                    <tr><td colspan="2" style="text-align:center;color:#999;">加载中...</td></tr>
+                    <tr><td colspan="2" style="text-align:center;color:#999;" th:text="#{common.loading}">加载中...</td></tr>
                 </tbody>
             </table>
         </div>
 
         <div class="card">
-            <div class="card-header">📋 数据导出</div>
+            <div class="card-header">📋 <span th:text="#{stats.export}">数据导出</span></div>
             <div style="display:flex;gap:12px;">
-                <button class="btn btn-primary" onclick="exportData('csv')">📥 导出CSV</button>
-                <button class="btn btn-outline" onclick="exportData('json')">📥 导出JSON</button>
-                <span style="font-size:12px;color:#999;margin-left:12px;align-self:center;">
-                    导出科研数据，用于论文/报告
-                </span>
+                <button class="btn btn-primary" onclick="exportData('csv')">📥 CSV</button>
+                <button class="btn" style="background:#eee;" onclick="exportData('json')">📥 JSON</button>
             </div>
         </div>
     </div>
 
     <script>
-        // 加载统计数据
         fetch('/api/v1/admin/stats')
-            .then(r => r.json())
-            .then(data => {
-                if (data.code === 200) {
-                    const d = data.data;
-                    document.getElementById('totalDiagnoses').textContent = d.total_diagnoses || 0;
-                    document.getElementById('pendingCount').textContent = d.pending_review || 0;
-                    document.getElementById('totalDiseases').textContent = d.total_diseases || 0;
-                    document.getElementById('usableImages').textContent = d.usable_images || 0;
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.code !== 200) return;
+                var d = data.data;
+                document.getElementById('totalDiagnoses').textContent = d.total_diagnoses || 0;
+                document.getElementById('pendingCount').textContent = d.pending_review || 0;
+                document.getElementById('totalDiseases').textContent = d.total_diseases || 0;
+                document.getElementById('usableImages').textContent = d.usable_images || 0;
 
-                    if (d.by_version) {
-                        const tbody = document.getElementById('versionStats');
-                        tbody.innerHTML = d.by_version.map(v =>
-                            `<tr><td><span class="badge badge-info">${v[0]}</span></td><td>${v[1]} 次</td></tr>`
-                        ).join('');
-                    }
+                if (d.by_version) {
+                    document.getElementById('versionStats').innerHTML = d.by_version.map(function (v) {
+                        return '<tr><td><span class="badge badge-info">' + v[0] + '</span></td><td>' + v[1] + '</td></tr>';
+                    }).join('');
                 }
-            });
+            })
+            .catch(function () { /* 数据未就绪时保持占位符 */ });
 
         function exportData(format) {
-            alert('数据导出功能将在专家后台完善版本中提供。\n\n当前可通过API: /api/v1/admin/export?format=' + format);
+            window.location.href = '/api/v1/admin/export?format=' + format;
         }
     </script>
 </body>

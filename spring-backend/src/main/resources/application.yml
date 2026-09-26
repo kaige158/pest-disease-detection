@@ -31,7 +31,10 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        # default_schema: core  # 仅PostgreSQL使用，H2不需要
+        # 必须指定：database/init.sql 把业务表建在 core schema 下，
+        # 不指定的话 Hibernate 会去 PostgreSQL 默认的 public schema 找表，
+        # ddl-auto=validate 启动即失败（报 relation "xxx" does not exist）。
+        default_schema: core
     open-in-view: false  # 性能优化
 
   # Redis
@@ -46,9 +49,20 @@ spring:
       max-file-size: 10MB
       max-request-size: 20MB
 
-  # 国际化默认语言
+  # 国际化默认语言 + 静态资源缓存
   web:
     locale: zh
+    # 静态资源（js/css）缓存时间设为 0：开发期改完 js 刷新即生效，
+    # 否则浏览器会继续用旧脚本，出现"改了代码却没生效"的假象。
+    # 生产环境建议改为 3600（或由 Nginx 统一处理缓存）。
+    resources:
+      cache:
+        period: 0
+
+  # Thymeleaf —— 开发期关闭模板缓存，改完 HTML 刷新即生效（生产可设为 true 提升性能）
+  thymeleaf:
+    cache: false
+    encoding: UTF-8
 
   # Jackson JSON配置
   jackson:
@@ -65,6 +79,39 @@ security:
   # admin路径是否开放（true=无需登录，false=需要认证）
   # 生产环境务必保持false（默认值）
   admin-open: false
+  # API Key 加密主密钥（AES-256-GCM）—— 用于加密 AI 通道的 api_key
+  # 务必通过环境变量注入；未配置时使用开发密钥并打印告警
+  ai-key-secret: ${AI_KEY_SECRET:}
+
+# ==========================================
+# 首次启动初始化
+# ==========================================
+app:
+  # 默认管理员(admin)初始密码；留空则随机生成并在启动日志打印一次
+  admin-init-password: ${ADMIN_INIT_PASSWORD:}
+  # 生产模式：true 时密钥不合格将拒绝启动（见 StartupSecurityCheck）
+  # 本地开发保持 false；正式部署务必用 --app.security.strict=true 启动
+  security:
+    strict: ${APP_SECURITY_STRICT:false}
+  # 允许跨域的来源（逗号分隔）。留空时仅放开本机开发来源；
+  # 生产环境填实际域名，如 https://admin.example.com
+  cors-allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}
+  # 本机重置管理员密码接口的令牌（见 scripts/reset_admin_password.ps1）
+  # 留空即关闭该接口 —— 生产环境不再需要时建议留空
+  ops-token: ${OPS_TOKEN:}
+
+  # ==========================================
+  # 短信验证码（防止"编个号码就能注册"造成假账号堆积）
+  # ==========================================
+  sms:
+    # 是否强制验证码：新号码注册 / 换设备登录时必须验证
+    # 生产必须为 true；开发期可设 false 省事，但那样假账号仍可注册
+    require-code: ${SMS_REQUIRE_CODE:false}
+    # 短信通道：log(只打日志，开发用) | 接入真实通道时改成对应名称
+    provider: ${SMS_PROVIDER:log}
+    # 是否允许通过 /api/v1/auth/sms/demo-code 取回验证码
+    # **仅供开发/演示**：没有真实短信通道时否则无法测试。生产必须为 false
+    expose-code: ${SMS_EXPOSE_CODE:false}
 
 # ==========================================
 # AI服务配置
@@ -79,7 +126,9 @@ ai:
 # JWT配置
 # ==========================================
 jwt:
-  secret: ${JWT_SECRET:change-me-in-production-use-at-least-256-bits}
+  # 签发令牌的密钥 —— 必须通过环境变量 JWT_SECRET 注入（见 .env.example）
+  # 这里**故意不给默认值**：给了弱默认值会让"忘记配置"变成静默的安全事故
+  secret: ${JWT_SECRET:}
   expiration-hours: ${JWT_EXPIRE_HOURS:24}
 
 # ==========================================

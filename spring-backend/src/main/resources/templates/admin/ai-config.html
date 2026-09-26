@@ -1,0 +1,179 @@
+﻿<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:lang="${param.lang != null ? param.lang : (uiLang != null ? uiLang : 'zh')}">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="#{ai.title} + ' — ' + #{app.name}">AI 配置中心</title>
+    <link rel="stylesheet" href="/css/admin.css">
+    <th:block th:replace="~{admin/fragments :: adminStyles}"></th:block>
+    <style>
+        .ai-layout { display: flex; gap: 16px; align-items: flex-start; }
+        .ai-list { flex: 0 0 340px; }
+        .ai-detail { flex: 1; min-width: 0; }
+        .channel {
+            display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+            border: 1px solid #e6e6e6; border-radius: 8px; margin-bottom: 10px;
+            cursor: pointer; background: #fff; transition: all .15s;
+        }
+        .channel:hover { border-color: #4CAF50; }
+        .channel.selected { border-color: #4CAF50; box-shadow: 0 0 0 3px rgba(76,175,80,.12); }
+        .channel .name { font-weight: 600; }
+        .channel .meta { font-size: 12px; color: #888; margin-top: 2px; }
+        .badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+        .badge-active { background: #4CAF50; color: #fff; }
+        .badge-ok { background: #E8F5E9; color: #2E7D32; }
+        .badge-fail { background: #FFEBEE; color: #C62828; }
+        .badge-none { background: #F5F5F5; color: #757575; }
+        .form-row { margin-bottom: 14px; }
+        .form-row label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; font-weight: 600; }
+        .form-row input, .form-row select {
+            width: 100%; padding: 9px 11px; border: 1px solid #ddd; border-radius: 6px;
+            font-size: 14px; box-sizing: border-box;
+        }
+        .form-row .hint { font-size: 12px; color: #999; margin-top: 4px; }
+        .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+        .result-box { margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-size: 13px; display: none; }
+        .result-ok { background: #E8F5E9; border: 1px solid #A5D6A7; color: #1B5E20; }
+        .result-fail { background: #FFEBEE; border: 1px solid #EF9A9A; color: #B71C1C; }
+        .banner { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
+        .banner-info { background: #E3F2FD; border: 1px solid #90CAF9; color: #0D47A1; }
+        code { background: #F5F5F5; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <nav th:replace="~{admin/fragments :: sidebar('ai-config')}"></nav>
+
+    <div class="main">
+        <div th:replace="~{admin/fragments :: topbar(#{ai.title}, '🤖')}"></div>
+        <div th:replace="~{admin/fragments :: passwordBanner}"></div>
+
+        <div class="banner banner-info">
+            <span th:text="#{ai.intro}">这里配置的 AI 通道会立即作用于 APP 的拍照识别…</span>
+        </div>
+
+        <div class="ai-layout">
+            <div class="ai-list">
+                <div class="card" style="padding:14px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                        <b th:text="#{ai.channelList}">AI 通道</b>
+                        <button class="btn btn-primary" style="padding:5px 12px;font-size:13px;"
+                                onclick="newChannel()" th:text="'+ ' + #{common.add}">+ 新增</button>
+                    </div>
+                    <div id="channelList">
+                        <div style="color:#999;font-size:13px;" th:text="#{common.loading}">加载中…</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ai-detail">
+                <div class="card" style="padding:20px;">
+                    <h3 id="editorTitle" style="margin-top:0;" th:text="#{ai.selectHint}">选择一个通道进行配置</h3>
+
+                    <div id="editor" style="display:none;">
+                        <div class="grid2">
+                            <div class="form-row">
+                                <label th:text="#{ai.provider}">通道类型</label>
+                                <!--
+                                  选项由后端动态下发（见 ai-config.js 拉取 /api/v1/admin/ai/providers），
+                                  这样新增厂商（如 DeepSeek）只改后端，后台模板不用跟着改
+                                -->
+                                <select id="f-provider" onchange="onProviderChange()">
+                                    <option value="gemini">Google Gemini</option>
+                                </select>
+                                <div class="hint" id="providerNote"></div>
+                            </div>
+                            <div class="form-row">
+                                <label th:text="#{ai.displayName}">展示名称</label>
+                                <input id="f-displayName" th:placeholder="#{ai.displayNamePlaceholder}">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <label th:text="#{ai.apiKey}">API Key</label>
+                            <input id="f-apiKey" type="password" autocomplete="new-password"
+                                   th:placeholder="#{ai.apiKeyKeep}">
+                            <div class="hint" id="keyHint" th:text="#{ai.apiKeyNone}">当前未配置密钥</div>
+                        </div>
+
+                        <div class="grid2">
+                            <div class="form-row">
+                                <label th:text="#{ai.model}">模型名称</label>
+                                <input id="f-model" th:placeholder="#{ai.modelPlaceholder}">
+                            </div>
+                            <div class="form-row">
+                                <label th:text="#{ai.baseUrl}">接口地址（可选）</label>
+                                <input id="f-baseUrl" th:placeholder="#{ai.baseUrlPlaceholder}">
+                                <div class="hint" th:text="#{ai.baseUrlHint}">只填主机时会自动补路径</div>
+                            </div>
+                        </div>
+
+                        <div class="grid2">
+                            <div class="form-row">
+                                <label th:text="#{ai.maxTokens}">最大 Token</label>
+                                <input id="f-maxTokens" type="number" min="1" value="2000">
+                            </div>
+                            <div class="form-row">
+                                <label th:text="#{ai.temperature}">Temperature（0~1）</label>
+                                <input id="f-temperature" type="number" step="0.05" min="0" max="1" value="0.3">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <label th:text="#{common.remark}">备注</label>
+                            <input id="f-remark">
+                        </div>
+
+                        <div class="actions">
+                            <button class="btn btn-primary" onclick="saveChannel()"
+                                    th:text="'💾 ' + #{ai.save}">保存</button>
+                            <button class="btn btn-warning" onclick="testDraft()"
+                                    th:text="'🔌 ' + #{ai.test}">测试连接</button>
+                            <button class="btn" style="background:#4CAF50;color:#fff;" id="btnActivate"
+                                    onclick="activateChannel()" th:text="'✅ ' + #{ai.activate}">设为当前生效</button>
+                            <button class="btn" style="background:#f44336;color:#fff;" id="btnDelete"
+                                    onclick="deleteChannel()" th:text="'🗑 ' + #{common.delete}">删除</button>
+                        </div>
+
+                        <div id="testResult" class="result-box"></div>
+                    </div>
+                </div>
+
+                <div class="card" style="padding:16px;margin-top:14px;">
+                    <b th:text="#{ai.activeNow}">当前生效通道</b>
+                    <div id="activeInfo" style="font-size:13px;color:#555;margin-top:8px;"
+                         th:text="#{common.loading}">加载中…</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--
+      JS 文案统一由服务端注入，避免在 JS 里再维护一份多语言字典。
+    -->
+    <div id="i18n" style="display:none;"
+         th:attr="data-new-title=#{ai.newTitle},
+                  data-edit-prefix=#{ai.editTitle},
+                  data-badge-none=#{ai.badgeNone},
+                  data-badge-configured=#{ai.badgeConfigured},
+                  data-badge-active=#{ai.badgeActive},
+                  data-badge-ok=#{ai.badgeOk},
+                  data-badge-fail=#{ai.badgeFail},
+                  data-key-none=#{ai.apiKeyNone},
+                  data-key-current=#{ai.apiKeyCurrent},
+                  data-key-keep=#{ai.apiKeyKeepShort},
+                  data-key-new=#{ai.apiKeyNewHint},
+                  data-confirm-activate=#{ai.activateConfirm},
+                  data-confirm-delete=#{ai.deleteConfirm},
+                  data-testing=#{ai.testing},
+                  data-save-ok=#{ai.saveOk},
+                  data-activate-ok=#{ai.activateOk},
+                  data-no-channel=#{ai.noChannel},
+                  data-no-active=#{ai.noActive},
+                  data-active-line=#{ai.activeLine},
+                  data-configured=#{ai.configured},
+                  data-not-configured=#{ai.notConfigured}"></div>
+
+    <script src="/js/admin.js"></script>
+    <script src="/js/admin-ai-config.js?v=20260926d"></script>
+</body>
+</html>

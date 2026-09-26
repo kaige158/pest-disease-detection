@@ -1,7 +1,7 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:laos_agri_app/core/config/app_config.dart';
 import 'package:laos_agri_app/core/database/offline_knowledge.dart';
+import 'package:laos_agri_app/core/network/api_client.dart';
 
 /// AI农业诊断Agent + 离线知识库页面
 class ChatPage extends StatefulWidget {
@@ -48,10 +48,8 @@ class _ChatPageState extends State<ChatPage> {
     setState(() { _isDiagnosing = true; _agentCompleted = false; _agentDiagnosis = null; _agentStep = 0;
       _agentQuestion = t('正在连接...', 'ກຳລັງເຊື່ອມຕໍ່...'); _agentQuestionLo = ''; _agentOptions = []; });
     try {
-      final dio = Dio(BaseOptions(connectTimeout: const Duration(seconds: 5), receiveTimeout: const Duration(seconds: 15)));
-      final response = await dio.post('http://10.0.2.2:8000/api/v1/diagnosis/diagnose',
-          data: {'version': widget.config.version, 'language': _l});
-      _updateAgentState(response.data);
+      final data = await ApiClient(config: widget.config).diagnose(language: _l);
+      _updateAgentState(data);
     } catch (e) {
       setState(() {
         _agentQuestion = t('诊断服务暂不可用', 'ບໍລິການບໍ່ສາມາດໃຊ້ໄດ້ຊົ່ວຄາວ');
@@ -66,12 +64,13 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> _answerAgent(String answerKey, String answerValue) async {
     setState(() { _agentQuestion = t('分析中...', 'ກຳລັງວິເຄາະ...'); _agentOptions = []; });
     try {
-      final dio = Dio();
-      final response = await dio.post('http://10.0.2.2:8000/api/v1/diagnosis/diagnose', data: {
-        'session_id': _agentSessionId, 'version': widget.config.version, 'language': _l,
-        'answer': answerValue, 'answer_key': answerKey,
-      });
-      _updateAgentState(response.data);
+      final data = await ApiClient(config: widget.config).diagnose(
+        language: _l,
+        sessionId: _agentSessionId,
+        answerKey: answerKey,
+        answer: answerValue,
+      );
+      _updateAgentState(data);
     } catch (e) {
       setState(() { _agentQuestion = t('连接失败，请重试', 'ເຊື່ອມຕໍ່ບໍ່ໄດ້'); _agentOptions = [
         {'value': 'retry', 'label': t('重试', 'ລອງໃໝ່')}]; });

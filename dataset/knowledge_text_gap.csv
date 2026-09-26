@@ -1,0 +1,16 @@
+﻿作物,病虫害,学名,类型,严重度,语料图片数,缺-中文症状描述,缺-中文发病条件,缺-防控方案,缺-老挝语名称,缺-老挝语正文,建议负责方,优先级
+辣椒,辣椒猝倒病,Pythium spp.,病害,severe,1,是,是,是,是,是,农业专家(中文内容) + 老挝语专家(译文校核),P1
+西兰花,西兰花立枯病,Rhizoctonia solani,病害,severe,1,是,是,是,是,是,农业专家(中文内容) + 老挝语专家(译文校核),P1
+白菜,白菜霜霉病,Hyaloperonospora brassicae,病害,severe,1,是,是,是,是,是,农业专家(中文内容) + 老挝语专家(译文校核),P1
+甘蓝,甘蓝霜霉病,Hyaloperonospora brassicae,病害,moderate,2,是,是,是,是,是,农业专家(中文内容) + 老挝语专家(译文校核),P1
+南瓜,南瓜白粉病,Podosphaera xanthii,病害,moderate,2,是,是,是,是,是,农业专家(中文内容) + 老挝语专家(译文校核),P1
+芥菜,芥菜软腐病,Pectobacterium carotovorum,病害,severe,1,是,是,是,是,是,农业专家(中文内容) + 老挝语专家(译文校核),P1
+番茄,番茄病毒病,Tomato mosaic virus / Cucumber mosaic virus complex,病害,severe,2,是,是,是,是,是,农业专家(中文内容) + 老挝语专家(译文校核),P1
+萝卜,萝卜病毒病,Turnip mosaic virus,病害,moderate,2,是,是,是,是,是,农业专家(中文内容) + 老挝语专家(译文校核),P1
+南瓜,南瓜病毒病,Cucumber mosaic virus / Zucchini yellow mosaic virus,病害,severe,2,是,是,是,是,是,农业专家(中文内容) + 老挝语专家(译文校核),P1
+番茄,番茄根结线虫病,Meloidogyne incognita,病害,severe,4,是,是,是,是,是,农业专家(中文内容) + 老挝语专家(译文校核),P1
+白菜,菜粉蝶(白菜),Pieris rapae,害虫,moderate,6,是,是,是,是,是,农业专家(中文内容) + 老挝语专家(译文校核),P1
+白菜,小菜蛾(白菜),Plutella xylostella,害虫,severe,4,是,是,是,是,是,农业专家(中文内容) + 老挝语专家(译文校核),P1
+萝卜,黄曲条跳甲(萝卜),Phyllotreta striolata,害虫,severe,8,是,是,是,是,是,农业专家(中文内容) + 老挝语专家(译文校核),P1
+黄瓜,温室白粉虱(黄瓜),Trialeurodes vaporariorum,害虫,moderate,3,是,是,是,是,是,农业专家(中文内容) + 老挝语专家(译文校核),P1
+辣椒,侧多食跗线螨(辣椒),Polyphagotarsonemus latus,害虫,moderate,3,是,是,是,是,是,农业专家(中文内容) + 老挝语专家(译文校核),P1
