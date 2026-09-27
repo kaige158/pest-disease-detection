@@ -7,6 +7,7 @@ import com.laos.agri.entity.DiagnosisRecord;
 import com.laos.agri.repository.CropRepository;
 import com.laos.agri.repository.DiagnosisRecordRepository;
 import com.laos.agri.repository.DiseaseRepository;
+import com.laos.agri.service.AiRuntimeConfigService;
 import com.laos.agri.service.AiServiceClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,7 @@ public class RecognitionController {
     private static final String RECOGNITION_SUBDIR = "recognition";
 
     private final AiServiceClient aiServiceClient;
+    private final AiRuntimeConfigService aiRuntimeConfigService;
     private final DiagnosisRecordRepository diagnosisRepo;
     private final DiseaseRepository diseaseRepo;
     private final CropRepository cropRepo;
@@ -53,12 +55,14 @@ public class RecognitionController {
     private final Path uploadBase;
 
     public RecognitionController(AiServiceClient aiServiceClient,
+                                  AiRuntimeConfigService aiRuntimeConfigService,
                                   DiagnosisRecordRepository diagnosisRepo,
                                   DiseaseRepository diseaseRepo,
                                   CropRepository cropRepo,
                                   @org.springframework.beans.factory.annotation.Value(
                                           "${app.storage.upload-dir:./uploads}") String uploadDir) {
         this.aiServiceClient = aiServiceClient;
+        this.aiRuntimeConfigService = aiRuntimeConfigService;
         this.diagnosisRepo = diagnosisRepo;
         this.diseaseRepo = diseaseRepo;
         this.cropRepo = cropRepo;
@@ -136,8 +140,11 @@ public class RecognitionController {
             String base64Image = Base64.getEncoder().encodeToString(imageBytes);
 
             // 6. 调用AI识别
+            //    把后台「AI 配置中心」里当前生效的通道一起下发 ——
+            //    少了这个参数，AI 服务只能用 .env 默认值，后台换通道等于没换。
             Map<String, Object> aiResult = aiServiceClient.identifyDisease(
-                    base64Image, cropName, language, version);
+                    base64Image, cropName, language, version,
+                    aiRuntimeConfigService.activeChannel());
 
             int processingTimeMs = (int) (System.currentTimeMillis() - startTime);
 

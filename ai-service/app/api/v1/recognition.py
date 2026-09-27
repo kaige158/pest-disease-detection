@@ -37,6 +37,8 @@ class ChatRequest(BaseModel):
     version: str = "vegetable"
     session_id: str = ""
     history: list = []
+    # 同识别接口：业务后端下发当前生效通道，后台换模型对助手立即生效
+    provider_config: dict = {}
 
 
 @router.post("/identify")
@@ -145,7 +147,16 @@ async def identify_disease(request: IdentifyRequest):
 async def chat(request: ChatRequest):
     """AI农业诊断Agent对话"""
     try:
-        provider = get_ai_provider()
+        # 踩过的坑：这里原来调用的是一个**没有定义**的 get_ai_provider()，
+        # 也就是说 /api/v1/chat 每次都以 NameError 收场（返回 500），
+        # 而 Spring 侧又把所有异常统一成"AI服务暂时不可用"，谁都看不出原因。
+        # 正确做法与 /identify 一致：用请求里下发的 provider_config 构建 Provider。
+        provider = build_provider(ProviderConfig.from_dict(request.provider_config))
+        logger.info(
+            "助手请求: provider=%s model=%s language=%s 问题=%s",
+            provider.provider_name, getattr(provider, "model", "?"),
+            request.language, (request.message or "")[:40],
+        )
         reply = await provider.chat(
             message=request.message,
             history=request.history,
@@ -154,10 +165,11 @@ async def chat(request: ChatRequest):
         )
         return {"reply": reply, "session_id": request.session_id or f"sess_{int(time.time())}"}
     except Exception as e:
+        logger.exception("助手调用失败: %s", e)
         raise HTTPException(status_code=502, detail=f"AI对话服务异常: {str(e)}")
 
 
 @router.get("/health")
 async def health():
-    provider = get_ai_provider()
+    provider = build_provider(ProviderConfig.from_dict({}))
     return {"status": "ok", "provider": provider.provider_name}
