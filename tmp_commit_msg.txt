@@ -1,17 +1,11 @@
-﻿fix(db): 修正 v5 建库脚本的语句顺序 —— 唯一索引引用了尚未创建的列
+﻿feat(web): 把客户端 Web 版挂到服务器 /app/ 路径
 
-现象
-- 生产首次部署，postgres 初始化跑到 04-v5_user_admin_ai_config.sql 就中断
-- core 下只有 11 张表：缺 phone_verification 与 audit_log
-- 后端 ddl-auto=validate 因此反复重启（先是 ai_provider_config，修好权限后轮到这两张）
+用途：老师在浏览器里就能看农户端界面，不用装 APK。
 
-根因
-- 脚本里 CREATE UNIQUE INDEX ... ON core."user"(country_code, phone)
-  写在 ALTER TABLE core."user" ADD COLUMN country_code **之前**
-- PostgreSQL 报 column "country_code" does not exist 并中断整个脚本，
-  后面的两张建表语句全都没执行
-- 之所以一直没暴露：该脚本此前只在 H2 上跑过，而 H2 的表由 JPA 自动创建
-
-修复
-- 把手机号唯一索引挪到 country_code 建列之后（2.5.1 小节）
-- 并在该节开头写明顺序陷阱，避免以后再犯
+- deploy/webapp/：Flutter Web 构建产物（蔬菜版）
+  构建命令：flutter build web --release -t lib/main_vegetable.dart
+            --base-href /app/ --dart-define=API_BASE_URL=http://47.242.241.63/api/v1
+- deploy/nginx/laos-agri.conf：新增 /app/ 位置块（SPA 回退到 index.html）
+- deploy/docker-compose.prod.yml：把 ./webapp 挂进 nginx 容器
+- deploy/db-init/00-schemas.sql：补上 ALTER DATABASE ... search_path
+  （种子脚本用不带 core. 前缀的表名，缺了这步 05/06/07 会全部中断）
