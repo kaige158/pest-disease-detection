@@ -22,8 +22,8 @@ class KimiProvider(AIProvider):
         self, image_bytes: bytes, crop_info: Optional[dict] = None,
         language: str = "zh", version: str = "vegetable",
     ) -> List:
-        # 图片压缩（Kimi API对大图可能400）
-        compressed = self._compress_image(image_bytes, max_size_kb=500)
+        # 图片压缩（Kimi API对大图可能400）—— 统一走基类实现，避免各 Provider 各写一份
+        compressed, mime_type = self._compress_image(image_bytes, max_size_kb=500)
         base64_image = base64.b64encode(compressed).decode()
         crop_hint = f"作物类型可能是: {crop_info['crop_name']}" if crop_info else ""
 
@@ -40,7 +40,7 @@ class KimiProvider(AIProvider):
                         {"role": "system", "content": self._system_prompt(version, language)},
                         {"role": "user", "content": [
                             {"type": "image_url", "image_url": {
-                                "url": f"data:image/jpeg;base64,{base64_image}"
+                                "url": f"data:{mime_type};base64,{base64_image}"
                             }},
                             {"type": "text", "text": f"请识别这张图片中的植物病虫害。{crop_hint}"},
                         ]},
@@ -91,27 +91,3 @@ class KimiProvider(AIProvider):
 
 如无法识别，confidence设为<0.5并说明原因。"""
 
-    def _compress_image(self, image_bytes: bytes, max_size_kb: int = 500) -> bytes:
-        """压缩图片，Kimi API对大图会400"""
-        if len(image_bytes) <= max_size_kb * 1024:
-            return image_bytes
-        try:
-            from PIL import Image
-            img = Image.open(io.BytesIO(image_bytes))
-            # 缩放到最大800px宽
-            if img.width > 800:
-                ratio = 800 / img.width
-                img = img.resize((800, int(img.height * ratio)), Image.LANCZOS)
-            # JPEG压缩
-            buf = io.BytesIO()
-            img = img.convert("RGB")
-            img.save(buf, format="JPEG", quality=70)
-            compressed = buf.getvalue()
-            if len(compressed) > max_size_kb * 1024:
-                # 继续降质量
-                buf = io.BytesIO()
-                img.save(buf, format="JPEG", quality=40)
-                compressed = buf.getvalue()
-            return compressed
-        except Exception:
-            return image_bytes  # 压缩失败就用原图

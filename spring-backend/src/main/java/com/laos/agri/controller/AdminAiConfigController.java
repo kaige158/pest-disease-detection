@@ -111,18 +111,18 @@ public class AdminAiConfigController {
         List<Map<String, Object>> list = new ArrayList<>();
 
         list.add(providerOption("gemini", "Google Gemini（有免费额度）", true,
-                "在 https://aistudio.google.com/apikey 申请 Key", null, "gemini-3.6-flash"));
+                "✅ 支持图片识别｜在 https://aistudio.google.com/apikey 申请 Key", null, "gemini-2.5-flash"));
         list.add(providerOption("deepseek", "DeepSeek（国内直连）", true,
-                "国内可直连；视觉识别需使用 vision 系列模型，请先点「测试连接」验证",
-                "https://api.deepseek.com/v1/chat/completions", "deepseek-v4-flash-vision-exp"));
+                "⚠ 不支持图片识别（官方只有文本模型）｜可用于 AI 助手；拍照识别请选 Gemini / 通义千问 / 智谱",
+                "https://api.deepseek.com/v1/chat/completions", "deepseek-chat"));
         list.add(providerOption("kimi", "月之暗面 Kimi（国内可直连）", true,
-                "在 https://platform.moonshot.cn 申请 Key", null, "moonshot-v1-8k-vision-preview"));
+                "✅ 支持图片识别｜在 https://platform.moonshot.cn 申请 Key", null, "moonshot-v1-8k-vision-preview"));
         list.add(providerOption("openai", "OpenAI GPT-4o", true,
-                "需要海外网络环境", null, "gpt-4o"));
+                "✅ 支持图片识别｜需要海外网络环境", null, "gpt-4o"));
         list.add(providerOption("claude", "Anthropic Claude", true,
-                "需要海外网络环境", null, "claude-sonnet-4-20250514"));
+                "✅ 支持图片识别｜需要海外网络环境", null, "claude-sonnet-4-20250514"));
         list.add(providerOption("custom", "自定义 / 代理（通义千问、智谱等）", true,
-                "兼容 OpenAI 协议：填接口地址与模型名即可接入任意厂商或自建代理",
+                "兼容 OpenAI 协议：填接口地址与模型名即可接入任意厂商或自建代理（是否支持图片取决于所填模型）",
                 null, null));
         list.add(providerOption("mock", "Mock（离线演示，不调外部 API）", false,
                 "无需密钥，用于演示与联调，识别结果固定", null, null));

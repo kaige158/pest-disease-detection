@@ -125,11 +125,11 @@ public class DataInitializer implements ApplicationRunner {
 
         record Seed(String provider, String display, String model, String baseUrl, String remark) {}
         List<Seed> seeds = List.of(
-                new Seed("gemini", "Google Gemini（推荐，有免费额度）", "gemini-3.6-flash", null,
-                        "在 https://aistudio.google.com/apikey 申请 Key 后填入"),
-                new Seed("deepseek", "DeepSeek（国内直连）", "deepseek-v4-flash-vision-exp",
+                new Seed("gemini", "Google Gemini（推荐，有免费额度）", "gemini-2.5-flash", null,
+                        "支持图片识别；在 https://aistudio.google.com/apikey 申请 Key 后填入"),
+                new Seed("deepseek", "DeepSeek（国内直连）", "deepseek-chat",
                         "https://api.deepseek.com/v1/chat/completions",
-                        "国内直连；视觉能力需用 vision 系列模型，先点「测试连接」验证"),
+                        "官方只有文本模型，不支持图片识别；可用于 AI 助手"),
                 new Seed("kimi", "月之暗面 Kimi（国内可直连）", "moonshot-v1-8k-vision-preview", null,
                         "在 https://platform.moonshot.cn 申请 Key"),
                 new Seed("openai", "OpenAI GPT-4o", "gpt-4o", null, "需要海外网络环境"),

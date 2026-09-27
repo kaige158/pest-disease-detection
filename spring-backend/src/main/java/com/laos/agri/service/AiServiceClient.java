@@ -215,14 +215,8 @@ public class AiServiceClient {
         if (e instanceof org.springframework.web.client.RestClientResponseException resp) {
             String body = resp.getResponseBodyAsString();
             if (body != null && !body.isBlank()) {
-                var m = java.util.regex.Pattern
-                        .compile("\"detail\"\\s*:\\s*\"([^\"]+)\"")
-                        .matcher(body);
-                if (m.find()) return m.group(1);
-                var md = java.util.regex.Pattern
-                        .compile("\"detail\"\\s*:\\s*(\\{.*\\})", java.util.regex.Pattern.DOTALL)
-                        .matcher(body);
-                if (md.find()) return md.group(1);
+                String readable = readableDetail(body);
+                if (readable != null) return readable;
                 return preview(body);
             }
             return "AI 服务返回 HTTP " + resp.getStatusCode().value();
@@ -232,6 +226,44 @@ public class AiServiceClient {
             return "连不上 AI 服务（" + e.getClass().getSimpleName() + ": " + e.getMessage() + "）";
         }
         return e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+    }
+
+    /**
+     * 把 FastAPI 的错误响应翻译成一句人能看懂的话
+     *
+     * <p>FastAPI 的错误体有两种形态：
+     * <ul>
+     *   <li>{@code {"detail": "文本"}} —— 普通异常</li>
+     *   <li>{@code {"detail": {"error": "...", "issues": [...], "suggestions_zh": [...]}}}
+     *       —— 图片质量不合格时返回的结构化信息</li>
+     * </ul>
+     * 第二种以前会被整段 JSON 塞给用户看，手机上是没法看的。
+     */
+    private static String readableDetail(String body) {
+        try {
+            var root = new com.fasterxml.jackson.databind.ObjectMapper().readTree(body);
+            var detail = root.get("detail");
+            if (detail == null) return null;
+            if (detail.isTextual()) return detail.asText();
+
+            String error = detail.path("error").asText("");
+            var issues = detail.path("issues");
+            var suggestions = detail.path("suggestions_zh");
+            StringBuilder sb = new StringBuilder(error.isBlank() ? "AI 服务返回错误" : error);
+            if (issues.isArray() && !issues.isEmpty()) {
+                sb.append("：");
+                for (int i = 0; i < issues.size(); i++) {
+                    if (i > 0) sb.append("；");
+                    sb.append(issues.get(i).asText());
+                }
+            }
+            if (suggestions.isArray() && !suggestions.isEmpty()) {
+                sb.append("。建议：").append(suggestions.get(0).asText());
+            }
+            return sb.toString();
+        } catch (Exception ignore) {
+            return null;
+        }
     }
 
     /** 响应体单行预览（打日志用，避免把整篇 HTML/Base64 灌进日志） */

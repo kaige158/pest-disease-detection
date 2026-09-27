@@ -26,20 +26,24 @@ PROVIDER_PRESETS = {
     "deepseek": {
         "label": "DeepSeek（深度求索）",
         "base_url": "https://api.deepseek.com/v1/chat/completions",
-        "model": "deepseek-v4-flash-vision-exp",
-        "note": "国内直连；视觉能力需用 vision 系列模型，务必先点「测试连接」验证",
+        "model": "deepseek-chat",
+        "note": "官方 API 目前只有文本模型（deepseek-chat / deepseek-reasoner），"
+                "可以做 AI 助手，**不能做拍照识别**；识别请用 Gemini / 通义千问 / 智谱",
+        "supports_vision": False,
     },
     "qwen": {
         "label": "通义千问（阿里云百炼）",
         "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
         "model": "qwen-vl-max",
         "note": "国内直连，支持视觉；模型名以阿里云百炼控制台为准",
+        "supports_vision": True,
     },
     "zhipu": {
         "label": "智谱 GLM",
         "base_url": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
         "model": "glm-4v",
         "note": "国内直连，支持视觉",
+        "supports_vision": True,
     },
 }
 

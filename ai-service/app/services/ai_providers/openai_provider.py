@@ -21,6 +21,9 @@ class OpenAIProvider(AIProvider):
         self, image_bytes: bytes, crop_info: Optional[dict] = None,
         language: str = "zh", version: str = "vegetable",
     ) -> List:
+        # 先压缩再 base64：原图 2~4MB → base64 后 3~5MB，很多厂商会直接 413，
+        # 而且白烧 token。压缩逻辑统一在基类（Gemini/OpenAI 兼容通道共用）。
+        image_bytes, mime_type = self._compress_image(image_bytes)
         base64_image = base64.b64encode(image_bytes).decode()
 
         system_prompt = self._build_system_prompt(version, language)
@@ -36,7 +39,7 @@ class OpenAIProvider(AIProvider):
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": [
                             {"type": "text", "text": user_prompt},
-                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}},
+                            {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{base64_image}"}},
                         ]},
                     ],
                     "max_tokens": self.max_tokens,

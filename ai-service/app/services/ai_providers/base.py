@@ -92,6 +92,89 @@ class AIProvider(ABC):
             return f"{self.base_url}{path}"
         return f"{self.base_url}{path}"
 
+    #: 发给模型前把图压到这个长边 / 大小以内
+    IMAGE_MAX_SIDE = 1200
+    IMAGE_MAX_KB = 2000
+
+    def _compress_image(
+        self,
+        image_bytes: bytes,
+        max_size_kb: int = None,
+        max_side: int = None,
+    ) -> tuple:
+        """把上传原图压成"模型友好"的尺寸，返回 (bytes, mime_type)
+
+        为什么放在基类：所有 Provider 都要处理同一件事 ——
+        手机/语料原图常见 4000×3000、2~4MB，直接 base64 会变成 3~5MB 的请求体，
+        有的厂商直接 413 拒绝，有的即使收下也要多花好几倍 token。
+        压缩到长边 1200px 对病虫害识别精度几乎没有影响（病斑细节仍清晰），
+        但体积通常降到 200~400KB。
+
+        注意顺序：**质量检测用原图**（要看真实分辨率与清晰度），
+        压缩只发生在"准备发给模型"这一步。
+        """
+        max_size_kb = max_size_kb or self.IMAGE_MAX_KB
+        max_side = max_side or self.IMAGE_MAX_SIDE
+        mime_type = self._detect_mime_type(image_bytes)
+
+        if len(image_bytes) <= max_size_kb * 1024 and not self._needs_resize(image_bytes, max_side):
+            return image_bytes, mime_type
+
+        try:
+            import io
+            from PIL import Image, ImageOps
+
+            img = Image.open(io.BytesIO(image_bytes))
+            img.load()
+            img = ImageOps.exif_transpose(img)
+
+            if max(img.size) > max_side:
+                ratio = max_side / max(img.size)
+                img = img.resize(
+                    (max(1, int(img.width * ratio)), max(1, int(img.height * ratio))),
+                    Image.LANCZOS,
+                )
+
+            if img.mode in ("RGBA", "P", "LA", "CMYK"):
+                img = img.convert("RGB")
+
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=75)
+            compressed = buf.getvalue()
+
+            if len(compressed) > max_size_kb * 1024:
+                buf = io.BytesIO()
+                img.save(buf, format="JPEG", quality=40)
+                compressed = buf.getvalue()
+
+            return compressed, "image/jpeg"
+        except Exception:
+            # 压缩失败就退回原图：宁可多花 token，也不能让识别直接失败
+            return image_bytes, mime_type
+
+    def _needs_resize(self, image_bytes: bytes, max_side: int) -> bool:
+        """只看文件头判断尺寸，不解码整张图（大图解码本身就很贵）"""
+        try:
+            import io
+            from PIL import Image
+
+            with Image.open(io.BytesIO(image_bytes)) as img:
+                return max(img.size) > max_side
+        except Exception:
+            return False
+
+    @staticmethod
+    def _detect_mime_type(image_bytes: bytes) -> str:
+        if image_bytes[:2] == b'\xff\xd8':
+            return "image/jpeg"
+        elif image_bytes[:4] == b'\x89PNG':
+            return "image/png"
+        elif image_bytes[:4] == b'RIFF' and image_bytes[8:12] == b'WEBP':
+            return "image/webp"
+        elif image_bytes[:4] == b'GIF8':
+            return "image/gif"
+        return "image/jpeg"
+
     @abstractmethod
     async def identify_disease(
         self,
