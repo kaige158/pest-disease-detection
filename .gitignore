@@ -68,3 +68,9 @@ Thumbs.db
 docs/ui-preview-*/p-*/
 .dsh-home/*/p-*/
 
+
+# === 部署产物（deploy.sh 在服务器上生成，不入库）===
+deploy/data/
+deploy/.env
+deploy/db-init/*.sql
+!deploy/db-init/00-schemas.sql

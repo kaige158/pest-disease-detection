@@ -1,0 +1,143 @@
+# ==========================================================
+# 生产编排 —— 面向 2核4G 云服务器（阿里云香港 / 学校服务器通用）
+#
+# 与仓库根目录的 docker-compose.yml 的区别（那份是开发用）：
+#   1. **只有 Nginx 对外开端口**：数据库/AI/后端一律只在内部网络，
+#      安全组里也不需要放 8080/8000/5432/6379
+#   2. **显式内存上限**：2核4G 机器必须限，否则 Spring 默认堆就能吃掉 1GB
+#   3. **上传目录挂到宿主机 ./data/uploads**：容器重建不丢图片
+#   4. **健康检查 + 启动顺序**：postgres 健康后才起后端
+#
+# 启动：cd deploy && ./deploy.sh
+# ==========================================================
+
+name: laos-agri
+
+services:
+  # ---------- PostgreSQL 16 ----------
+  postgres:
+    image: postgres:16-alpine
+    container_name: laos_pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-laos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD 未设置，请先跑 deploy.sh}
+      POSTGRES_DB: ${POSTGRES_DB:-laos_agri}
+      TZ: ${TZ:-Asia/Vientiane}
+    # 2核4G 的参数：shared_buffers 给 256MB 足够这个量级
+    command:
+      - postgres
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - effective_cache_size=768MB
+      - -c
+      - work_mem=8MB
+      - -c
+      - maintenance_work_mem=64MB
+      - -c
+      - max_connections=50
+      - -c
+      - log_min_duration_statement=2000
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      # 首次初始化时按文件名顺序执行（只在数据卷为空时跑一次）
+      - ./db-init:/docker-entrypoint-initdb.d:ro
+    mem_limit: 768m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-laos} -d ${POSTGRES_DB:-laos_agri}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks: [backend]
+
+  # ---------- Redis（当前代码未真正使用，保留仅为兼容健康检查） ----------
+  redis:
+    image: redis:7-alpine
+    container_name: laos_redis
+    restart: unless-stopped
+    command: ["redis-server", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru", "--save", ""]
+    mem_limit: 96m
+    networks: [backend]
+    # 说明：全仓库搜不到 RedisTemplate / @Cacheable 的使用，Redis 目前是空跑的。
+    #       如果想再省 60MB 内存，把本段和 spring.env 里的 REDIS_HOST 一起删掉即可
+    #       （spring-boot-starter-data-redis 是懒连接，不影响启动）。
+
+  # ---------- Spring Boot 业务后端 ----------
+  spring:
+    build:
+      context: ../spring-backend
+    image: laos-agri/spring:${TAG:-latest}
+    container_name: laos_spring
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-laos_agri}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-laos}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: redis
+      AI_SERVICE_URL: http://ai-service:8000
+      UPLOAD_DIR: /data/uploads
+      APP_SECURITY_STRICT: "true"
+      TZ: ${TZ:-Asia/Vientiane}
+      # 2核4G 的关键：限堆。不加这两行，Spring 默认堆 = 机器内存/4，很容易 OOM
+      JAVA_OPTS: >-
+        -Xms512m -Xmx1024m -XX:MaxMetaspaceSize=256m
+        -XX:+ExitOnOutOfMemoryError
+        -Dfile.encoding=UTF-8 -Duser.timezone=${TZ:-Asia/Vientiane}
+    volumes:
+      - ./data/uploads:/data/uploads
+    mem_limit: 1500m
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # 用公开接口探活，而不是 /actuator/health ——
+      # 后者会把 Redis 等依赖算进来，任何一个抖动都会让容器被标记 unhealthy
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/api/v1/auth/countries"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+    networks: [backend]
+
+  # ---------- FastAPI AI 服务 ----------
+  ai-service:
+    build:
+      context: ../ai-service
+    image: laos-agri/ai:${TAG:-latest}
+    container_name: laos_ai
+    restart: unless-stopped
+    # 覆盖镜像里的开发命令：去掉 --reload（生产不需要热重载，白耗 CPU 与内存）
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+    environment:
+      TZ: ${TZ:-Asia/Vientiane}
+    mem_limit: 700m
+    networks: [backend]
+
+  # ---------- Nginx：唯一对外入口 ----------
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: laos_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/laos-agri.conf:/etc/nginx/conf.d/default.conf:ro
+      # 证书与 ACME 挑战目录（阶段 2 配 HTTPS 时用）
+      - ./data/certs:/etc/nginx/certs:ro
+      - ./data/certbot-www:/var/www/certbot
+    mem_limit: 128m
+    depends_on:
+      - spring
+    networks: [backend]
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  pg_data:
