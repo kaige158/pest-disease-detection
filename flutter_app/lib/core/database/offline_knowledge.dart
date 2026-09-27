@@ -55,6 +55,18 @@ class OfflineKnowledge {
     }).toList();
   }
 
+  /// 作物选项（中老双语）—— 供界面按钮使用
+  ///
+  /// 为什么单独给一个方法：离线库内部**以中文名为键**（搜索、分组都用它），
+  /// 但界面在老挝语下必须显示老挝语。早期界面直接取 [getCropNames]，
+  /// 于是切到老挝语后 AI 助手的作物按钮仍然是中文（用户反馈的问题）。
+  /// 这里一次返回两种写法，界面显示 lo、检索仍用 zh。
+  List<Map<String, String>> getCropOptions(String version) {
+    return getCropNames(version)
+        .map((zh) => {'zh': zh, 'lo': cropNameLo(zh)})
+        .toList();
+  }
+
   /// 作物中文→老挝语映射
   static const Map<String, String> _cropNameMap = {
     '白菜': 'ຜັກກາດ', '番茄': 'ໝາກເລັ່ນ', '辣椒': 'ໝາກເຜັດ',

@@ -168,16 +168,16 @@ public class AdminWebController {
     /**
      * 当前登录管理员 —— 从 Spring Security 上下文解析
      *
-     * <p>与 {@link com.laos.agri.config.AdminViewAdvice} 共用同一套解析逻辑，
-     * 这里单独取一份是因为表单提交后需要实体对象来改密码。
+     * <p>与 {@link com.laos.agri.config.AdminViewAdvice} 共用同一套解析逻辑。
+     *
+     * <p><b>踩过的坑</b>：早期这里自己判断 {@code auth.getPrincipal() instanceof String}，
+     * 但后台是**表单登录**，principal 是 {@code UserDetails} 对象（只有 JWT 才是字符串）——
+     * 于是永远返回 null，改密码方法直接跳回登录页，
+     * 表现为"点了修改、提示重新登录、但密码一个字都没改"的静默失败。
      */
     private User resolveCurrentAdmin() {
-        var auth = org.springframework.security.core.context.SecurityContextHolder
-                .getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) return null;
-        if (!(auth.getPrincipal() instanceof String username) || "anonymousUser".equals(username)) {
-            return null;
-        }
+        String username = com.laos.agri.config.AdminViewAdvice.resolveUsername();
+        if (username == null) return null;
         return userRepo.findByPhone(username).orElse(null);
     }
 

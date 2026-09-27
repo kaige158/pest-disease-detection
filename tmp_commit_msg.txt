@@ -1,13 +1,17 @@
-﻿fix: 修复拍照识别 100% 失败 + 移除登录页的开发提示
+﻿fix: 补回被丢弃的两个修复 + 修复 AI 助手作物名未翻译
 
-1) 拍照识别（核心功能）从未跑通
-   根因：RecognitionController 先调 saveImage()（内部 MultipartFile.transferTo()
-   会把 multipart 临时文件移走），之后再调 image.getBytes() →
-   FileNotFoundException（消息里是 /tmp/tomcat.../upload_xxx.tmp 路径）。
-   该异常被 catch 包成"AI识别服务不可用"，看起来像 AI 侧问题，极易误判。
-   修复：改为先把字节读进内存，再落盘；Base64 用内存里的字节。
-   验证：本机实测报错已变成真正的 AI 服务层错误（不再是临时文件路径）。
+背景：上一轮我用脚本直接在服务器上打了两个补丁但没有提交到仓库，
+后来执行 git checkout -- . 时被一并丢弃 —— 这两个 bug 在生产环境复现。
+现在正式写进代码。
 
-2) 登录页移除"忘记密码怎么办"整块提示
-   含重置脚本命令与"演示档重启清空数据"说明 —— 正式部署下既不专业，
-   也等于给攻击者指路。重置流程保留在 docs/生产部署手册.md。
+1) 用户列表查询（core.user）
+   (keyword IS NULL OR ...) 在 PostgreSQL 上无法推断参数类型 →
+   ERROR: function lower(bytea) does not exist。改用 COALESCE。
+
+2) 后台改密码静默失败
+   resolveCurrentAdmin() 只认字符串 principal，而表单登录给的是 UserDetails
+   对象 → 永远返回 null → 直接跳登录页、密码没改。改用 AdminViewAdvice.resolveUsername()。
+
+3) AI 助手作物按钮在老挝语下仍是中文
+   离线库以中文名为键，界面直接取中文名显示。
+   新增 OfflineKnowledge.getCropOptions() 返回中老双语，界面显示 lo、检索仍用 zh。

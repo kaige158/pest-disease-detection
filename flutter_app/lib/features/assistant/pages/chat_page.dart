@@ -135,8 +135,13 @@ class _ChatPageState extends State<ChatPage> {
             Icon(Icons.wifi_off, size: 48, color: Colors.grey[400]), const SizedBox(height: 8),
             Text(t('离线可用，输入关键词搜索', 'ອອບລາຍ, ພິມຄຳຄົ້ນຫາ'), style: const TextStyle(color: Colors.grey)),
             const SizedBox(height: 8),
-            Wrap(spacing: 6, alignment: WrapAlignment.center, children: _offline.getCropNames(widget.config.version).take(6).map((c) =>
-              ActionChip(label: Text(c, style: const TextStyle(fontSize: 12)), onPressed: () { _searchCtrl.text = c; _searchOffline(c); })).toList()),
+            Wrap(spacing: 6, alignment: WrapAlignment.center, children: _offline.getCropOptions(widget.config.version).take(6).map((c) =>
+              ActionChip(
+                // 按钮显示当前语言的名字，但检索始终用中文名（离线库以中文名为键）
+                label: Text(_l == 'lo' ? (c['lo'] ?? c['zh']!) : c['zh']!,
+                    style: const TextStyle(fontSize: 12)),
+                onPressed: () { _searchCtrl.text = c['zh']!; _searchOffline(c['zh']!); },
+              )).toList()),
           ]))),
   ]);
 
