@@ -1,0 +1,19 @@
+﻿fix(deploy): 修复 umask 泄漏导致 initdb 脚本不可读（Permission denied）
+
+现象
+- postgres 容器显示 healthy，但 core schema 下**一张表都没有**
+- 后端 ddl-auto=validate 报 missing table [core.ai_provider_config] 后反复重启
+- Nginx 502
+- 日志真凶：psql: .../01-init.sql: Permission denied
+
+根因
+- deploy.sh 生成 .env 时执行了 umask 077，**污染了脚本剩余部分的 umask**
+- 第 3 步 cp 出来的 db-init/01~07-*.sql 因此权限为 600（仅 root 可读）
+- postgres 容器内进程是 uid 70，读不了 → 初始化在 01 中断
+- 而 00-schemas.sql 来自 git 仓库（644）所以能读 —— 这就是"只跑了 00 和 01"的原因
+- 更隐蔽的是：容器配了 restart: unless-stopped，初始化失败后被自动拉起，
+  此时 PGDATA 非空 → postgres 跳过全部 initdb 脚本 → 表面 healthy、实则空库
+
+修复
+- umask 077 包进子 shell，不再泄漏到脚本其余部分
+- 复制后显式 chmod 644 db-init/*.sql（读取方是容器内 uid 70，不是宿主机 root）

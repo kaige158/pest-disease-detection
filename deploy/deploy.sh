@@ -63,8 +63,15 @@ fi
 # ==================== 2. 生成密钥（只做一次） ====================
 if [ ! -f "$ENV_FILE" ]; then
   log "首次部署：生成密钥并写入 $ENV_FILE"
-  umask 077
-  cat > "$ENV_FILE" <<EOF
+  # ⚠️ umask 必须放在子 shell 里！
+  #    踩过的坑：直接写 `umask 077` 会污染整个脚本进程，
+  #    导致后面第 3 步 cp 出来的 db-init/*.sql 权限变成 600（仅 root 可读）。
+  #    而 postgres 容器里的进程是 uid 70（postgres 用户），读不了这些文件，
+  #    初始化会在 `psql: .../01-init.sql: Permission denied` 处中断 ——
+  #    现象是"容器 healthy 但库里一张表都没有"，非常难查。
+  (
+    umask 077
+    cat > "$ENV_FILE" <<EOF
 # ==========================================================
 # 生产环境变量 —— 已加入 .gitignore，绝不能提交到版本库
 # 生成时间：$(date '+%F %T %Z')
@@ -93,6 +100,7 @@ APP_CORS_ALLOWED_ORIGINS=
 
 TZ=Asia/Vientiane
 EOF
+  )
   chmod 600 "$ENV_FILE"
   log "密钥已生成（$ENV_FILE，权限 600）"
 else
@@ -120,6 +128,11 @@ copy_sql v5_user_admin_ai_config.sql     04-v5_user_admin_ai_config.sql
 copy_sql seed_data_v1.sql                05-seed_data_v1.sql
 copy_sql seed_corpus_6ps_v1.sql          06-seed_corpus_6ps_v1.sql
 copy_sql seed_raw_materials_v1.sql       07-seed_raw_materials_v1.sql
+
+# 权限必须是「所有人可读」：这些文件挂进 postgres 容器后，
+# 读取它们的是容器内的 uid 70（postgres 用户），不是宿主机 root。
+# 少了这一步就会报 `psql: .../01-init.sql: Permission denied`。
+chmod 644 "$DEPLOY_DIR/db-init/"*.sql
 
 log "已准备 $(ls -1 "$DEPLOY_DIR/db-init"/*.sql | wc -l) 个 SQL 脚本（按序号执行）"
 
