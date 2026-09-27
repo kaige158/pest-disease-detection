@@ -22,6 +22,7 @@ class KimiProvider(AIProvider):
         self, image_bytes: bytes, crop_info: Optional[dict] = None,
         language: str = "zh", version: str = "vegetable",
     ) -> List:
+        self._require_api_key()
         # 图片压缩（Kimi API对大图可能400）—— 统一走基类实现，避免各 Provider 各写一份
         compressed, mime_type = self._compress_image(image_bytes, max_size_kb=500)
         base64_image = base64.b64encode(compressed).decode()
@@ -62,6 +63,7 @@ class KimiProvider(AIProvider):
 
     async def chat(self, message: str, history: List[ChatMessage],
                    language: str = "zh", version: str = "vegetable") -> str:
+        self._require_api_key()
         async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
             response = await client.post(
                 self._endpoint(self.DEFAULT_URL, "/v1/chat/completions"),

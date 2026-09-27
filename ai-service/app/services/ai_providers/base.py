@@ -152,6 +152,20 @@ class AIProvider(ABC):
             # 压缩失败就退回原图：宁可多花 token，也不能让识别直接失败
             return image_bytes, mime_type
 
+    def _require_api_key(self) -> None:
+        """没有 Key 就给出人话提示，别让 httpx 抛 "Illegal header value b'Bearer '"
+
+        踩过的坑：通道没配 Key 时，代码会照常发出 `Authorization: Bearer `（空令牌），
+        httpx 直接抛 `LocalProtocolError: Illegal header value b'Bearer '` ——
+        这句话既看不出是哪个通道，也看不出是缺 Key，排查全靠猜。
+        """
+        if self.api_key:
+            return
+        raise RuntimeError(
+            f"通道「{self.provider_name}」尚未配置 API Key："
+            f"请到后台「AI 配置中心」编辑该通道填入 Key 并保存"
+        )
+
     def _needs_resize(self, image_bytes: bytes, max_side: int) -> bool:
         """只看文件头判断尺寸，不解码整张图（大图解码本身就很贵）"""
         try:

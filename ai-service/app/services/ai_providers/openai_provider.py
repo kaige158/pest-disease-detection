@@ -21,6 +21,8 @@ class OpenAIProvider(AIProvider):
         self, image_bytes: bytes, crop_info: Optional[dict] = None,
         language: str = "zh", version: str = "vegetable",
     ) -> List:
+        # 缺 Key 时给出人话错误（否则 httpx 会抛 Illegal header value b'Bearer '）
+        self._require_api_key()
         # 先压缩再 base64：原图 2~4MB → base64 后 3~5MB，很多厂商会直接 413，
         # 而且白烧 token。压缩逻辑统一在基类（Gemini/OpenAI 兼容通道共用）。
         image_bytes, mime_type = self._compress_image(image_bytes)
@@ -53,6 +55,7 @@ class OpenAIProvider(AIProvider):
         return AIResponseParser.parse(raw_text, self.provider_name, language)
 
     async def chat(self, message: str, history: List[ChatMessage], language: str = "zh", version: str = "vegetable") -> str:
+        self._require_api_key()
         async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
             response = await client.post(
                 self._endpoint(self.DEFAULT_URL, "/v1/chat/completions"),

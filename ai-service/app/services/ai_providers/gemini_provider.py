@@ -62,6 +62,7 @@ class GeminiProvider(AIProvider):
         self, image_bytes: bytes, crop_info: Optional[dict] = None,
         language: str = "zh", version: str = "vegetable",
     ) -> List:
+        self._require_api_key()
         compressed, mime_type = self._compress_image(image_bytes, max_size_kb=2000)
         base64_image = base64.b64encode(compressed).decode()
         crop_name = crop_info.get("crop_name", "") if crop_info else ""
@@ -125,6 +126,7 @@ class GeminiProvider(AIProvider):
         self, message: str, history: List[ChatMessage],
         language: str = "zh", version: str = "vegetable",
     ) -> str:
+        self._require_api_key()
         model = self.model or "gemini-2.5-flash"
         url = f"{self.BASE_URL}/models/{model}:generateContent?key={self.api_key}"
 
