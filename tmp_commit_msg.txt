@@ -1,18 +1,13 @@
-﻿fix: AI 通道切换失败 + 管理员授权二次认证 + 唯一管理员
+﻿fix: 修复 users.html 被误编码导致用户管理页白屏
 
-1) 「设为当前生效」报 duplicate key（用户实际遇到）
-   库上有唯一索引 uk_ai_provider_enabled（全表最多一行为 is_active=true）。
-   原实现"先停用旧通道、再启用新通道"用的是 save()，实体只标脏，
-   真正的 UPDATE 在事务提交时由 Hibernate 统一 flush，而 flush 顺序不保证等于
-   调用顺序 —— 一旦先发"启用新通道"，旧通道还是 true 就撞唯一索引，通道根本切不过去。
-   修复：改用 saveAndFlush，让"先停用"立刻落库。
+上一轮我为了刷新 JS 缓存版本号，用 PowerShell 做了文本替换：
+  (Get-Content -Raw) -replace ... | Set-Content -Encoding utf8
+这行命令把 UTF-8 的 users.html 当成 ANSI/GBK 读入又写成 UTF-8，
+结果：全文件中文变成乱码，且乱码把 管理员</option> 里的 < 一起吃掉，
+HTML 标签被破坏 → 用户管理页整页白屏。
 
-2) 改角色必须二次验证管理员密码（授权 = 把后台能力交给别人）
-   与"查看手机号""删除账号"同一套安全模型：只靠"已登录"不够，
-   管理员离开座位时浏览器可能还开着。成功/失败都写审计（CHANGE_ROLE /
-   CHANGE_ROLE_FAILED / CHANGE_ROLE_BLOCKED）。
-   前端：改角色弹窗新增密码输入框与安全说明（中老双语）。
+修复：从上一次正确提交恢复 users.html，改用编辑工具重新应用三处改动
+（授权密码框、i18n 数据属性、JS 版本号 bump）。
 
-3) 管理员账号唯一
-   系统只允许一个管理员：不允许把其它账号提升为 ADMIN（避免权限扩散）。
-   保留原有"不能把最后一个管理员降级"的保护，两条规则都写审计。
+教训：这类文件一律不要用 PowerShell 做文本替换 —— 它对无 BOM 的 UTF-8
+文件会按 ANSI 解读，静默损坏内容（本次还额外引入了 BOM）。
