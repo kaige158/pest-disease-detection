@@ -1,11 +1,13 @@
-﻿feat(web): 把客户端 Web 版挂到服务器 /app/ 路径
+﻿fix: 修复拍照识别 100% 失败 + 移除登录页的开发提示
 
-用途：老师在浏览器里就能看农户端界面，不用装 APK。
+1) 拍照识别（核心功能）从未跑通
+   根因：RecognitionController 先调 saveImage()（内部 MultipartFile.transferTo()
+   会把 multipart 临时文件移走），之后再调 image.getBytes() →
+   FileNotFoundException（消息里是 /tmp/tomcat.../upload_xxx.tmp 路径）。
+   该异常被 catch 包成"AI识别服务不可用"，看起来像 AI 侧问题，极易误判。
+   修复：改为先把字节读进内存，再落盘；Base64 用内存里的字节。
+   验证：本机实测报错已变成真正的 AI 服务层错误（不再是临时文件路径）。
 
-- deploy/webapp/：Flutter Web 构建产物（蔬菜版）
-  构建命令：flutter build web --release -t lib/main_vegetable.dart
-            --base-href /app/ --dart-define=API_BASE_URL=http://47.242.241.63/api/v1
-- deploy/nginx/laos-agri.conf：新增 /app/ 位置块（SPA 回退到 index.html）
-- deploy/docker-compose.prod.yml：把 ./webapp 挂进 nginx 容器
-- deploy/db-init/00-schemas.sql：补上 ALTER DATABASE ... search_path
-  （种子脚本用不带 core. 前缀的表名，缺了这步 05/06/07 会全部中断）
+2) 登录页移除"忘记密码怎么办"整块提示
+   含重置脚本命令与"演示档重启清空数据"说明 —— 正式部署下既不专业，
+   也等于给攻击者指路。重置流程保留在 docs/生产部署手册.md。

@@ -94,7 +94,21 @@ public class RecognitionController {
             return ApiResponse.error(413, "图片大小不能超过10MB");
         }
 
-        // 2. 生成任务ID + 保存图片到本地
+        // 2. 先把图片字节读进内存 —— **顺序很关键**
+        //
+        //    踩过的坑：saveImage() 里的 MultipartFile.transferTo() 会把 multipart 临时文件
+        //    **移动**到目标路径；之后再调用 image.getBytes() 就会抛
+        //    FileNotFoundException（消息里是 /tmp/tomcat…/upload_xxx.tmp 这样的临时路径）。
+        //    这个异常被下面的 catch 包成"AI识别服务不可用"，看起来像 AI 侧问题，
+        //    实际是上传处理顺序错了 —— 拍照识别会 100% 失败。
+        byte[] imageBytes;
+        try {
+            imageBytes = image.getBytes();
+        } catch (IOException e) {
+            log.error("读取上传图片失败: {}", e.getMessage());
+            return ApiResponse.error(400, "读取上传的图片失败，请重试");
+        }
+
         String taskId = "rec_" + UUID.randomUUID().toString().substring(0, 8);
         String imagePath = saveImage(image, taskId);
 
@@ -118,7 +132,8 @@ public class RecognitionController {
 
         try {
             // 5. 编码图片为Base64 → 发给AI服务
-            String base64Image = Base64.getEncoder().encodeToString(image.getBytes());
+            //    用上面已经读进内存的 imageBytes（不能再调 image.getBytes()，临时文件已被移走）
+            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
 
             // 6. 调用AI识别
             Map<String, Object> aiResult = aiServiceClient.identifyDisease(

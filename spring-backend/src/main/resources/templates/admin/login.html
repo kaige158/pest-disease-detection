@@ -39,11 +39,11 @@
             border: 1px solid #CFD8DC; color: #607D8B;
         }
         .lang-row a.on { background: #4CAF50; color: #fff; border-color: #4CAF50; font-weight: 600; }
-        .hint {
-            font-size: 11px; color: #999; margin-top: 18px; line-height: 1.7;
-            text-align: left; background: #FAFAFA; padding: 10px 12px; border-radius: 6px;
-        }
-        .hint code { background: #EEE; padding: 1px 4px; border-radius: 3px; }
+        /*
+          说明：早期这里还有一块「忘记密码怎么办」的开发提示（含重置脚本命令与
+          "演示档重启会清空数据"），正式部署后既不专业也等于给攻击者指路，已移除。
+          重置流程保留在 docs/生产部署手册.md。
+        */
     </style>
 </head>
 <body style="background:#E8F5E9;">
@@ -91,15 +91,6 @@
 
             <button type="submit" class="btn btn-primary" th:text="#{login.submit}">登 录</button>
         </form>
-
-        <div class="hint">
-            <b th:text="#{login.forgotTitle}">忘记密码怎么办？</b><br>
-            <span th:text="#{login.forgotBody}">管理员密码由后端初始化时写入，可用以下方式重置：</span><br>
-            1. <span th:text="#{login.forgotStep1}">在项目根目录执行重置脚本（仅本机可用）</span><br>
-            &nbsp;&nbsp;&nbsp;<code>powershell -File scripts\reset_admin_password.ps1 -Password 新密码</code><br>
-            2. <span th:text="#{login.forgotStep2}">或设置环境变量后重启服务</span><br>
-            <span style="color:#C62828;" th:text="#{login.demoWarning}">演示档使用内存数据库，重启会清空数据。</span>
-        </div>
     </div>
 </body>
 </html>
