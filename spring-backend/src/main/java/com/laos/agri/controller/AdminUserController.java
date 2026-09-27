@@ -70,7 +70,7 @@ public class AdminUserController {
         return userRepo.findByPhone(username).orElse(null);
     }
 
-    public record RoleRequest(String role) {}
+    public record RoleRequest(String role, String password) {}
     public record ResetPasswordRequest(String newPassword) {}
 
     /**
@@ -210,11 +210,25 @@ public class AdminUserController {
         }).orElseGet(() -> ApiResponse.error(404, "用户不存在: " + id));
     }
 
-    /** 调整角色（农户 / 技术员 / 专家 / 管理员） */
+    /**
+     * 调整角色（农户 / 技术员 / 专家 / 管理员）
+     *
+     * <p><b>两条硬规则</b>（用户提出的要求）：
+     * <ol>
+     *   <li><b>必须二次验证管理员自己的登录密码</b> —— 改角色本质是"授权"，
+     *       等于把后台能力交给别人。只靠"已登录"不够：管理员离开座位时
+     *       浏览器可能还开着，别人可以直接给自己升权。</li>
+     *   <li><b>管理员账号只能有一个</b> —— 不允许把任何其它账号提升为 ADMIN。
+     *       避免权限扩散：一旦有第二个管理员，账号安全操作就不再可控。</li>
+     * </ol>
+     * 成功与失败都写审计日志（谁给谁授了什么权）。
+     */
     @PostMapping("/{id}/role")
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<Map<String, Object>> changeRole(@PathVariable Long id, @RequestBody RoleRequest req) {
+    public ApiResponse<Map<String, Object>> changeRole(@PathVariable Long id,
+                                                       @RequestBody RoleRequest req,
+                                                       HttpServletRequest httpReq) {
         if (req.role() == null || req.role().isBlank()) {
             return ApiResponse.error(400, "请指定角色");
         }
@@ -225,16 +239,48 @@ public class AdminUserController {
             return ApiResponse.error(400, "未知角色：" + req.role());
         }
 
+        User admin = currentAdmin();
+        if (admin == null) {
+            return ApiResponse.error(401, "未登录或登录已过期");
+        }
+
+        // ---- 二次验证：必须输入当前管理员自己的登录密码 ----
+        if (req.password() == null || req.password().isBlank()) {
+            return ApiResponse.error(400, "请输入你的登录密码以确认授权");
+        }
+        boolean passwordOk = admin.getPasswordHash() != null
+                && passwordEncoder.matches(req.password(), admin.getPasswordHash());
+        if (!passwordOk) {
+            auditService.record(admin, "CHANGE_ROLE_FAILED", "USER", id,
+                    "二次验证密码错误，拒绝调整角色为 " + target.name(), clientIp(httpReq));
+            log.warn("调整角色时密码校验失败: actorId={}, targetId={}", admin.getId(), id);
+            return ApiResponse.error(403, "密码不正确，无法调整角色");
+        }
+
         return userRepo.findById(id).map(u -> {
-            // 不允许把最后一个管理员降级，避免后台把自己锁死
+            // ---- 唯一管理员：不允许把别人提升为 ADMIN ----
+            if (target == UserRole.ADMIN && u.getRole() != UserRole.ADMIN) {
+                String reason = "系统只允许一个管理员账号，不能把其它账号提升为管理员";
+                auditService.record(admin, "CHANGE_ROLE_BLOCKED", "USER", id, reason, clientIp(httpReq));
+                return ApiResponse.<Map<String, Object>>error(400, reason);
+            }
+            // ---- 不允许把最后一个管理员降级，避免后台把自己锁死 ----
             if (u.getRole() == UserRole.ADMIN && target != UserRole.ADMIN
                     && userRepo.countByRole(UserRole.ADMIN) <= 1) {
-                return ApiResponse.<Map<String, Object>>error(400, "系统至少保留一名管理员，无法降级");
+                String reason = "系统至少保留一名管理员，无法降级";
+                auditService.record(admin, "CHANGE_ROLE_BLOCKED", "USER", id, reason, clientIp(httpReq));
+                return ApiResponse.<Map<String, Object>>error(400, reason);
             }
+
+            UserRole before = u.getRole();
             u.setRole(target);
             u.setTokenVersion((u.getTokenVersion() == null ? 0 : u.getTokenVersion()) + 1);
             userRepo.save(u);
-            log.info("管理员调整用户角色: id={}, role={}", id, target);
+
+            auditService.record(admin, "CHANGE_ROLE", "USER", id,
+                    String.format("角色 %s → %s", before == null ? "-" : before.name(), target.name()),
+                    clientIp(httpReq));
+            log.info("管理员调整用户角色: id={}, {} → {}", id, before, target);
             Map<String, Object> resp = AuthService.toPublicView(u);
             resp.put("message", "角色已调整为 " + target.name() + "，该用户需重新登录");
             return ApiResponse.ok(resp);

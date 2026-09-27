@@ -217,14 +217,22 @@ public class AdminAiConfigController {
                 // 允许启用（比如 mock 通道不需要密钥），但明确告知
                 log.warn("启用未配置密钥的通道: id={}, provider={}", id, target.getProvider());
             }
+            // ⚠️ 这里必须用 saveAndFlush，不能用 save：
+            //    库上有唯一索引 uk_ai_provider_enabled（全表最多一行为 is_active=true）。
+            //    save() 只是把实体标脏，真正的 UPDATE 在事务提交时才由 Hibernate 统一 flush，
+            //    而 flush 顺序**不保证**等于这里的调用顺序 —— 一旦先发
+            //    "UPDATE 新通道 SET is_active=true"，旧通道还是 true，就会报
+            //    duplicate key value violates unique constraint "uk_ai_provider_enabled"
+            //    （用户实际遇到的就是这个错误，导致通道根本切不过去）。
+            //    saveAndFlush 让"先停用"立刻落库，顺序就确定了。
             repo.findFirstByIsActiveTrue().ifPresent(current -> {
                 if (!current.getId().equals(id)) {
                     current.setIsActive(false);
-                    repo.save(current);
+                    repo.saveAndFlush(current);
                 }
             });
             target.setIsActive(true);
-            repo.save(target);
+            repo.saveAndFlush(target);
             log.info("AI 通道已切换: {} (id={})", target.getProvider(), id);
             return ApiResponse.ok(toDto(target));
         }).orElseGet(() -> ApiResponse.error(404, "通道不存在: " + id));

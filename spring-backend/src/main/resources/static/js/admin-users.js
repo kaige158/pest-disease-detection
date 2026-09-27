@@ -16,7 +16,8 @@
          'revealPwdEmpty',
          'disableConfirm', 'enableConfirm', 'toggleDone',
          'roleFarmer', 'roleTechnician', 'roleExpert', 'roleAdmin',
-         'roleCurrent', 'resetPwdTooShort', 'failed',
+         'roleCurrent', 'roleSecurityNote', 'rolePasswordPlaceholder', 'rolePasswordEmpty',
+         'resetPwdTooShort', 'failed',
          'delete', 'deleteTitle', 'deleteUser', 'deleteWillDelete', 'deleteWillKeep',
          'deleteAccount', 'deleteDiag', 'deleteImages',
          'deleteAssets', 'deleteAssetsReady', 'deleteCodes', 'deleteAuditKept',
@@ -198,6 +199,11 @@
             (role ? ' · ' + T.roleCurrent + ' ' + roleLabel(role) : '');
         var sel = document.getElementById('roleNew');
         if (role) sel.value = role;
+        // 每次打开都清空密码与上一次的错误提示
+        document.getElementById('rolePwd').value = '';
+        var res = document.getElementById('roleResult');
+        res.style.display = 'none';
+        res.textContent = '';
         showRoleDetail();
         document.getElementById('roleMask').style.display = 'flex';
     }
@@ -217,17 +223,38 @@
         }
     }
 
+    /**
+     * 提交改角色
+     *
+     * 必须带管理员自己的登录密码：改角色等于"授权"，只靠"已登录"不够
+     * （管理员离开座位时浏览器可能还开着）。后端会校验，密码错一律拒绝并写审计。
+     */
     function doChangeRole() {
         var role = document.getElementById('roleNew').value;
+        var pwd = document.getElementById('rolePwd').value;
+        var resultEl = document.getElementById('roleResult');
+        if (!pwd) {
+            resultEl.style.display = 'block';
+            resultEl.style.color = '#B71C1C';
+            resultEl.textContent = T.rolePasswordEmpty;
+            return;
+        }
         api('/api/v1/admin/users/' + currentUser + '/role',
-            { method: 'POST', body: JSON.stringify({ role: role }) })
+            { method: 'POST', body: JSON.stringify({ role: role, password: pwd }) })
             .then(function (r) {
                 alert(r.message || T.roleDone);
                 closeRole();
                 load();
                 loadStats();
             })
-            .catch(function (e) { alert(T.failed + ': ' + e.message); });
+            .catch(function (e) {
+                resultEl.style.display = 'block';
+                resultEl.style.color = '#B71C1C';
+                resultEl.textContent = e.message;
+            })
+            .then(function () {
+                document.getElementById('rolePwd').value = '';
+            });
     }
 
     // ==================== 查看完整手机号（二次验证 + 审计）====================

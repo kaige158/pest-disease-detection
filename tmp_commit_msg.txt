@@ -1,17 +1,18 @@
-﻿fix: 补回被丢弃的两个修复 + 修复 AI 助手作物名未翻译
+﻿fix: AI 通道切换失败 + 管理员授权二次认证 + 唯一管理员
 
-背景：上一轮我用脚本直接在服务器上打了两个补丁但没有提交到仓库，
-后来执行 git checkout -- . 时被一并丢弃 —— 这两个 bug 在生产环境复现。
-现在正式写进代码。
+1) 「设为当前生效」报 duplicate key（用户实际遇到）
+   库上有唯一索引 uk_ai_provider_enabled（全表最多一行为 is_active=true）。
+   原实现"先停用旧通道、再启用新通道"用的是 save()，实体只标脏，
+   真正的 UPDATE 在事务提交时由 Hibernate 统一 flush，而 flush 顺序不保证等于
+   调用顺序 —— 一旦先发"启用新通道"，旧通道还是 true 就撞唯一索引，通道根本切不过去。
+   修复：改用 saveAndFlush，让"先停用"立刻落库。
 
-1) 用户列表查询（core.user）
-   (keyword IS NULL OR ...) 在 PostgreSQL 上无法推断参数类型 →
-   ERROR: function lower(bytea) does not exist。改用 COALESCE。
+2) 改角色必须二次验证管理员密码（授权 = 把后台能力交给别人）
+   与"查看手机号""删除账号"同一套安全模型：只靠"已登录"不够，
+   管理员离开座位时浏览器可能还开着。成功/失败都写审计（CHANGE_ROLE /
+   CHANGE_ROLE_FAILED / CHANGE_ROLE_BLOCKED）。
+   前端：改角色弹窗新增密码输入框与安全说明（中老双语）。
 
-2) 后台改密码静默失败
-   resolveCurrentAdmin() 只认字符串 principal，而表单登录给的是 UserDetails
-   对象 → 永远返回 null → 直接跳登录页、密码没改。改用 AdminViewAdvice.resolveUsername()。
-
-3) AI 助手作物按钮在老挝语下仍是中文
-   离线库以中文名为键，界面直接取中文名显示。
-   新增 OfflineKnowledge.getCropOptions() 返回中老双语，界面显示 lo、检索仍用 zh。
+3) 管理员账号唯一
+   系统只允许一个管理员：不允许把其它账号提升为 ADMIN（避免权限扩散）。
+   保留原有"不能把最后一个管理员降级"的保护，两条规则都写审计。

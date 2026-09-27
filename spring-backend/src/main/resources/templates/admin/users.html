@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:lang="${param.lang != null ? param.lang : (uiLang != null ? uiLang : 'zh')}">
 <head>
     <meta charset="UTF-8">
-    <title th:text="#{users.title} + ' — ' + #{app.name}">用户管理</title>
+    <title th:text="#{users.title} + ' 鈥?' + #{app.name}">鐢ㄦ埛绠＄悊</title>
     <link rel="stylesheet" href="/css/admin.css">
     <th:block th:replace="~{admin/fragments :: adminStyles}"></th:block>
     <style>
@@ -23,10 +23,10 @@
         .state-off { color: #C62828; font-weight: 600; }
         .row-actions button { font-size: 12px; padding: 4px 9px; margin-right: 5px; cursor: pointer;
             border: 1px solid #ddd; border-radius: 5px; background: #fff; white-space: nowrap; }
-        /* 操作列按钮不换行（老挝语按钮文案较长，否则会折成两行把行高撑开） */
+        /* 鎿嶄綔鍒楁寜閽笉鎹㈣锛堣€佹対璇寜閽枃妗堣緝闀匡紝鍚﹀垯浼氭姌鎴愪袱琛屾妸琛岄珮鎾戝紑锛?*/
         .row-actions { white-space: nowrap; }
         .row-actions button:hover { border-color: #4CAF50; color: #2E7D32; }
-        /* 删除是危险操作：视觉上必须和普通按钮区分开，避免误点 */
+        /* 鍒犻櫎鏄嵄闄╂搷浣滐細瑙嗚涓婂繀椤诲拰鏅€氭寜閽尯鍒嗗紑锛岄伩鍏嶈鐐?*/
         .row-actions button.danger { color: #C62828; border-color: #FFCDD2; }
         .row-actions button.danger:hover { background: #FFEBEE; border-color: #E57373; color: #B71C1C; }
         .pager { margin-top: 14px; display: flex; gap: 10px; align-items: center; font-size: 13px; color: #666; }
@@ -40,14 +40,14 @@
         .modal input, .modal select { width: 100%; padding: 9px 11px; border: 1px solid #ddd;
             border-radius: 6px; font-size: 14px; box-sizing: border-box; margin-bottom: 12px; }
 
-        /* ---------- 角色权限说明 ---------- */
+        /* ---------- 瑙掕壊鏉冮檺璇存槑 ---------- */
         .perm-card { background: #fff; border: 1px solid #eee; border-radius: 8px;
             margin-bottom: 14px; overflow: hidden; }
         .perm-card > summary { cursor: pointer; padding: 12px 16px; font-size: 14px;
             font-weight: 600; color: #2E7D32; background: #F6FBF6; list-style: none; }
         .perm-card > summary::-webkit-details-marker { display: none; }
-        .perm-card > summary::before { content: '▸ '; }
-        .perm-card[open] > summary::before { content: '▾ '; }
+        .perm-card > summary::before { content: '鈻?'; }
+        .perm-card[open] > summary::before { content: '鈻?'; }
         .perm-body { padding: 4px 16px 16px; }
         .perm-sub { font-size: 12px; color: #777; margin: 6px 0 12px; line-height: 1.6; }
         table.perm { width: 100%; border-collapse: collapse; }
@@ -58,7 +58,7 @@
         table.perm td.yes { color: #2E7D32; font-weight: 700; text-align: center; }
         table.perm td.no { color: #CCC; text-align: center; }
         .role-summary { font-size: 12px; color: #666; margin: 4px 0 10px; }
-        /* 弹窗里的角色说明：老挝语较长，允许换行 */
+        /* 寮圭獥閲岀殑瑙掕壊璇存槑锛氳€佹対璇緝闀匡紝鍏佽鎹㈣ */
         #roleDetail { max-height: 210px; overflow-y: auto; border: 1px solid #eee;
             border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; background: #FCFCFC; }
         #roleDetail h4 { margin: 0 0 6px; font-size: 13px; color: #2E7D32; }
@@ -72,40 +72,40 @@
     <nav th:replace="~{admin/fragments :: sidebar('users')}"></nav>
 
     <div class="main">
-        <div th:replace="~{admin/fragments :: topbar(#{users.title}, '👥')}"></div>
+        <div th:replace="~{admin/fragments :: topbar(#{users.title}, '馃懃')}"></div>
         <div th:replace="~{admin/fragments :: passwordBanner}"></div>
 
         <div class="stat-mini" id="stats">
-            <div th:text="#{common.loading}">加载中…</div>
+            <div th:text="#{common.loading}">鍔犺浇涓€?/div>
         </div>
 
-        <!-- 角色权限说明：内容由后端 Permission 矩阵生成，与真实拦截规则同源 -->
+        <!-- 瑙掕壊鏉冮檺璇存槑锛氬唴瀹圭敱鍚庣 Permission 鐭╅樀鐢熸垚锛屼笌鐪熷疄鎷︽埅瑙勫垯鍚屾簮 -->
         <details class="perm-card" open>
-            <summary th:text="#{perm.title}">角色权限说明</summary>
+            <summary th:text="#{perm.title}">瑙掕壊鏉冮檺璇存槑</summary>
             <div class="perm-body">
                 <div class="perm-sub" th:text="#{perm.subtitle}"></div>
                 <table class="perm">
                     <thead>
                     <tr>
-                        <th th:text="#{perm.colFeature}">功能</th>
+                        <th th:text="#{perm.colFeature}">鍔熻兘</th>
                         <th class="role-col" th:each="rc : ${roleCards}"
-                            th:text="${rc.label}">角色</th>
+                            th:text="${rc.label}">瑙掕壊</th>
                     </tr>
                     </thead>
                     <tbody>
                     <tr th:each="row : ${permissionRows}">
-                        <td th:text="${row.label}">功能</td>
+                        <td th:text="${row.label}">鍔熻兘</td>
                         <td th:each="rc : ${roleCards}"
                             th:classappend="${row.allows(rc)} ? 'yes' : 'no'"
-                            th:text="${row.allows(rc)} ? '✓' : '—'">✓</td>
+                            th:text="${row.allows(rc)} ? '鉁? : '鈥?">鉁?/td>
                     </tr>
                     </tbody>
                 </table>
-                <!-- 每个角色一句话定位：说明"这个角色是干什么的" -->
+                <!-- 姣忎釜瑙掕壊涓€鍙ヨ瘽瀹氫綅锛氳鏄?杩欎釜瑙掕壊鏄共浠€涔堢殑" -->
                 <div style="margin-top:14px;">
                     <div th:each="rc : ${roleCards}" class="role-summary">
-                        <b th:text="${rc.label}">角色</b>
-                        <span> — </span>
+                        <b th:text="${rc.label}">瑙掕壊</b>
+                        <span> 鈥?</span>
                         <span th:text="${rc.summary}"></span>
                     </div>
                 </div>
@@ -116,14 +116,14 @@
             <input id="q-keyword" th:placeholder="#{users.keywordPlaceholder}"
                    onkeydown="if(event.key==='Enter')search()">
             <select id="q-role" onchange="search()">
-                <option value="" th:text="#{users.allRoles}">全部角色</option>
-                <option value="FARMER" th:text="#{role.FARMER}">农户</option>
-                <option value="TECHNICIAN" th:text="#{role.TECHNICIAN}">技术员</option>
-                <option value="EXPERT" th:text="#{role.EXPERT}">专家</option>
-                <option value="ADMIN" th:text="#{role.ADMIN}">管理员</option>
+                <option value="" th:text="#{users.allRoles}">鍏ㄩ儴瑙掕壊</option>
+                <option value="FARMER" th:text="#{role.FARMER}">鍐滄埛</option>
+                <option value="TECHNICIAN" th:text="#{role.TECHNICIAN}">鎶€鏈憳</option>
+                <option value="EXPERT" th:text="#{role.EXPERT}">涓撳</option>
+                <option value="ADMIN" th:text="#{role.ADMIN}">绠＄悊鍛?/option>
             </select>
-            <button class="btn btn-primary" onclick="search()" th:text="'🔍 ' + #{common.search}">搜索</button>
-            <button class="btn" style="background:#eee;" onclick="resetSearch()" th:text="#{common.reset}">重置</button>
+            <button class="btn btn-primary" onclick="search()" th:text="'馃攳 ' + #{common.search}">鎼滅储</button>
+            <button class="btn" style="background:#eee;" onclick="resetSearch()" th:text="#{common.reset}">閲嶇疆</button>
         </div>
 
         <div class="card" style="padding:0;overflow:hidden;">
@@ -131,71 +131,71 @@
                 <thead>
                 <tr>
                     <th style="width:60px;" th:text="#{knowledge.id}">ID</th>
-                    <th th:text="#{users.phone}">手机号</th>
-                    <th th:text="#{users.nickname}">昵称</th>
-                    <th style="width:110px;" th:text="#{common.role}">角色</th>
-                    <th style="width:80px;" th:text="#{common.status}">状态</th>
-                    <th style="width:150px;" th:text="#{users.lastLogin}">最近登录</th>
-                    <th style="width:90px;" th:text="#{users.loginCount}">登录次数</th>
-                    <th style="width:300px;" th:text="#{common.actions}">操作</th>
+                    <th th:text="#{users.phone}">鎵嬫満鍙?/th>
+                    <th th:text="#{users.nickname}">鏄电О</th>
+                    <th style="width:110px;" th:text="#{common.role}">瑙掕壊</th>
+                    <th style="width:80px;" th:text="#{common.status}">鐘舵€?/th>
+                    <th style="width:150px;" th:text="#{users.lastLogin}">鏈€杩戠櫥褰?/th>
+                    <th style="width:90px;" th:text="#{users.loginCount}">鐧诲綍娆℃暟</th>
+                    <th style="width:300px;" th:text="#{common.actions}">鎿嶄綔</th>
                 </tr>
                 </thead>
                 <tbody id="rows">
-                <tr><td colspan="8" style="text-align:center;color:#999;" th:text="#{common.loading}">加载中…</td></tr>
+                <tr><td colspan="8" style="text-align:center;color:#999;" th:text="#{common.loading}">鍔犺浇涓€?/td></tr>
                 </tbody>
             </table>
         </div>
 
         <div class="pager">
-            <button class="btn" style="background:#eee;" onclick="prevPage()" th:text="#{users.prevPage}">上一页</button>
+            <button class="btn" style="background:#eee;" onclick="prevPage()" th:text="#{users.prevPage}">涓婁竴椤?/button>
             <span id="pageInfo"></span>
-            <button class="btn" style="background:#eee;" onclick="nextPage()" th:text="#{users.nextPage}">下一页</button>
+            <button class="btn" style="background:#eee;" onclick="nextPage()" th:text="#{users.nextPage}">涓嬩竴椤?/button>
             <span id="totalInfo"></span>
         </div>
     </div>
 
-    <!-- 重置密码弹窗 -->
+    <!-- 閲嶇疆瀵嗙爜寮圭獥 -->
     <div class="modal-mask" id="pwdMask">
         <div class="modal">
-            <h3 th:text="#{users.resetPwdTitle}">重置密码</h3>
+            <h3 th:text="#{users.resetPwdTitle}">閲嶇疆瀵嗙爜</h3>
             <div style="font-size:13px;color:#666;margin-bottom:10px;" id="pwdUser"></div>
             <input id="pwdNew" type="text" th:placeholder="#{users.resetPwdHint}">
             <div style="display:flex;gap:10px;justify-content:flex-end;">
-                <button class="btn" style="background:#eee;" onclick="closePwd()" th:text="#{common.cancel}">取消</button>
-                <button class="btn btn-primary" onclick="doResetPwd()" th:text="#{common.confirm}">确认</button>
+                <button class="btn" style="background:#eee;" onclick="closePwd()" th:text="#{common.cancel}">鍙栨秷</button>
+                <button class="btn btn-primary" onclick="doResetPwd()" th:text="#{common.confirm}">纭</button>
             </div>
         </div>
     </div>
 
-    <!-- 角色调整弹窗 -->
+    <!-- 瑙掕壊璋冩暣寮圭獥 -->
     <div class="modal-mask" id="roleMask">
         <div class="modal" style="width:420px;">
-            <h3 th:text="#{users.roleTitle}">调整角色</h3>
+            <h3 th:text="#{users.roleTitle}">璋冩暣瑙掕壊</h3>
             <div style="font-size:13px;color:#666;margin-bottom:10px;" id="roleUser"></div>
             <select id="roleNew" onchange="showRoleDetail()">
-                <option value="FARMER" th:text="#{role.FARMER}">农户</option>
-                <option value="TECHNICIAN" th:text="#{role.TECHNICIAN}">技术员</option>
-                <option value="EXPERT" th:text="#{role.EXPERT}">专家</option>
-                <option value="ADMIN" th:text="#{role.ADMIN}">管理员</option>
+                <option value="FARMER" th:text="#{role.FARMER}">鍐滄埛</option>
+                <option value="TECHNICIAN" th:text="#{role.TECHNICIAN}">鎶€鏈憳</option>
+                <option value="EXPERT" th:text="#{role.EXPERT}">涓撳</option>
+                <option value="ADMIN" th:text="#{role.ADMIN}">绠＄悊鍛?/option>
             </select>
 
             <!--
-              权限明细：每个角色一块，服务端按 Permission 矩阵渲染好，
-              JS 只负责显示当前选中角色的那一块（不在前端拼文案，避免中老文案漂移）
+              鏉冮檺鏄庣粏锛氭瘡涓鑹蹭竴鍧楋紝鏈嶅姟绔寜 Permission 鐭╅樀娓叉煋濂斤紝
+              JS 鍙礋璐ｆ樉绀哄綋鍓嶉€変腑瑙掕壊鐨勯偅涓€鍧楋紙涓嶅湪鍓嶇鎷兼枃妗堬紝閬垮厤涓€佹枃妗堟紓绉伙級
             -->
             <div id="roleDetail">
                 <div class="role-detail" th:each="rc : ${roleCards}" th:attr="data-role=${rc.code}"
                      style="display:none;">
-                    <h4 th:text="${rc.label}">角色</h4>
+                    <h4 th:text="${rc.label}">瑙掕壊</h4>
                     <div class="role-summary" th:text="${rc.summary}"></div>
                     <div th:if="${!#lists.isEmpty(rc.can)}">
-                        <h4 th:text="#{perm.canDo}">可以做</h4>
+                        <h4 th:text="#{perm.canDo}">鍙互鍋?/h4>
                         <ul>
                             <li th:each="c : ${rc.can}" th:text="${c}"></li>
                         </ul>
                     </div>
                     <div th:if="${!#lists.isEmpty(rc.cannot)}">
-                        <h4 class="no-title" th:text="#{perm.cannotDo}">不可以做</h4>
+                        <h4 class="no-title" th:text="#{perm.cannotDo}">涓嶅彲浠ュ仛</h4>
                         <ul>
                             <li th:each="c : ${rc.cannot}" th:text="${c}"></li>
                         </ul>
@@ -205,53 +205,61 @@
                 </div>
             </div>
 
+            <!-- 鎺堟潈闇€浜屾楠岃瘉锛氭敼瑙掕壊绛変簬鎶婂悗鍙拌兘鍔涗氦缁欏鏂癸紝鍙潬"宸茬櫥褰?涓嶅 -->
+            <div style="background:#FFF8E1;border:1px solid #FFE082;border-radius:6px;padding:10px;
+                        font-size:12px;color:#8D6E00;margin-bottom:10px;line-height:1.7;"
+                 th:text="#{users.roleSecurityNote}">鏀硅鑹茬瓑浜庢妸鍚庡彴鑳藉姏浜ょ粰瀵规柟锛岄渶瑕佸啀娆￠獙璇佷綘鐨勭櫥褰曞瘑鐮侊紝鏈鎿嶄綔浼氳鍏ュ璁℃棩蹇椼€?/div>
+            <input id="rolePwd" type="password" autocomplete="current-password"
+                   th:placeholder="#{users.rolePasswordPlaceholder}">
+            <div id="roleResult" style="display:none;font-size:12px;margin-bottom:10px;"></div>
+
             <div style="font-size:12px;color:#999;margin-bottom:12px;" th:text="#{users.roleHint}"></div>
             <div style="display:flex;gap:10px;justify-content:flex-end;">
-                <button class="btn" style="background:#eee;" onclick="closeRole()" th:text="#{common.cancel}">取消</button>
-                <button class="btn btn-primary" onclick="doChangeRole()" th:text="#{common.confirm}">确认</button>
+                <button class="btn" style="background:#eee;" onclick="closeRole()" th:text="#{common.cancel}">鍙栨秷</button>
+                <button class="btn btn-primary" onclick="doChangeRole()" th:text="#{common.confirm}">纭</button>
             </div>
         </div>
     </div>
 
-    <!-- 查看完整手机号弹窗（需二次验证管理员密码 + 审计留痕） -->
+    <!-- 鏌ョ湅瀹屾暣鎵嬫満鍙峰脊绐楋紙闇€浜屾楠岃瘉绠＄悊鍛樺瘑鐮?+ 瀹¤鐣欑棔锛?-->
     <div class="modal-mask" id="revealMask">
         <div class="modal">
-            <h3 th:text="#{users.revealTitle}">查看完整手机号</h3>
+            <h3 th:text="#{users.revealTitle}">鏌ョ湅瀹屾暣鎵嬫満鍙?/h3>
             <div style="font-size:13px;color:#666;margin-bottom:10px;" id="revealUser"></div>
             <div style="background:#FFF8E1;border:1px solid #FFE082;border-radius:6px;padding:10px;
                         font-size:12px;color:#8D6E00;margin-bottom:12px;"
-                 th:text="#{users.revealSecurityNote}">手机号属于个人信息，查看需再次验证你的登录密码，本次操作会记入审计日志。</div>
+                 th:text="#{users.revealSecurityNote}">鎵嬫満鍙峰睘浜庝釜浜轰俊鎭紝鏌ョ湅闇€鍐嶆楠岃瘉浣犵殑鐧诲綍瀵嗙爜锛屾湰娆℃搷浣滀細璁板叆瀹¤鏃ュ織銆?/div>
             <input id="revealPwd" type="password" autocomplete="current-password"
                    th:placeholder="#{users.revealPasswordPlaceholder}">
             <div id="revealResult"
                  style="display:none;background:#E8F5E9;border:1px solid #A5D6A7;border-radius:6px;
                         padding:10px 12px;font-size:15px;font-weight:600;color:#1B5E20;margin-bottom:12px;"></div>
             <div style="display:flex;gap:10px;justify-content:flex-end;">
-                <button class="btn" style="background:#eee;" onclick="closeReveal()" th:text="#{common.close}">关闭</button>
+                <button class="btn" style="background:#eee;" onclick="closeReveal()" th:text="#{common.close}">鍏抽棴</button>
                 <button class="btn btn-primary" id="revealBtn" onclick="doReveal()"
-                        th:text="#{users.revealSubmit}">验证并查看</button>
+                        th:text="#{users.revealSubmit}">楠岃瘉骞舵煡鐪?/button>
             </div>
         </div>
     </div>
 
-    <!-- 删除用户弹窗：只删账号，平台数据（识别记录/图片/训练资产）匿名保留 -->
+    <!-- 鍒犻櫎鐢ㄦ埛寮圭獥锛氬彧鍒犺处鍙凤紝骞冲彴鏁版嵁锛堣瘑鍒褰?鍥剧墖/璁粌璧勪骇锛夊尶鍚嶄繚鐣?-->
     <div class="modal-mask" id="delMask">
         <div class="modal" style="width:480px;">
-            <h3 style="color:#C62828;" th:text="#{users.deleteTitle}">删除用户账号</h3>
+            <h3 style="color:#C62828;" th:text="#{users.deleteTitle}">鍒犻櫎鐢ㄦ埛璐﹀彿</h3>
             <div style="font-size:13px;color:#666;margin-bottom:10px;" id="delUser"></div>
 
             <div style="background:#FFF8E1;border:1px solid #FFE082;border-radius:6px;padding:10px;
                         font-size:12px;color:#8D6E00;margin-bottom:12px;line-height:1.7;
                         white-space:pre-line;"
-                 th:text="#{users.deleteWarning}">只删除账号本身。</div>
+                 th:text="#{users.deleteWarning}">鍙垹闄よ处鍙锋湰韬€?/div>
 
             <div style="font-size:13px;font-weight:600;color:#C62828;margin-bottom:6px;"
-                 th:text="#{users.deleteWillDelete}">将删除</div>
+                 th:text="#{users.deleteWillDelete}">灏嗗垹闄?/div>
             <div id="delPreview" style="font-size:13px;color:#444;background:#FAFAFA;border:1px solid #eee;
                         border-radius:6px;padding:10px 12px;margin-bottom:10px;line-height:1.9;"></div>
 
             <div style="font-size:13px;font-weight:600;color:#2E7D32;margin-bottom:6px;"
-                 th:text="#{users.deleteWillKeep}">将保留</div>
+                 th:text="#{users.deleteWillKeep}">灏嗕繚鐣?/div>
             <div id="delKeep" style="font-size:13px;color:#444;background:#F6FBF6;border:1px solid #DCEDC8;
                         border-radius:6px;padding:10px 12px;margin-bottom:12px;line-height:1.9;"></div>
 
@@ -263,10 +271,10 @@
             <div id="delResult" style="display:none;font-size:12px;margin-bottom:10px;"></div>
 
             <div style="display:flex;gap:10px;justify-content:flex-end;">
-                <button class="btn" style="background:#eee;" onclick="closeDelete()" th:text="#{common.cancel}">取消</button>
+                <button class="btn" style="background:#eee;" onclick="closeDelete()" th:text="#{common.cancel}">鍙栨秷</button>
                 <button class="btn" id="delBtn" onclick="doDelete()"
                         style="background:#C62828;color:#fff;"
-                        th:text="#{users.deleteConfirmBtn}">确认删除账号</button>
+                        th:text="#{users.deleteConfirmBtn}">纭鍒犻櫎璐﹀彿</button>
             </div>
         </div>
     </div>
@@ -305,6 +313,9 @@
                   data-role-expert=#{role.EXPERT},
                   data-role-admin=#{role.ADMIN},
                   data-role-current=#{users.roleCurrent},
+                  data-role-security-note=#{users.roleSecurityNote},
+                  data-role-password-placeholder=#{users.rolePasswordPlaceholder},
+                  data-role-password-empty=#{users.rolePasswordEmpty},
                   data-reset-pwd-too-short=#{pwd.tooShort},
                   data-failed=#{common.failed},
                   data-delete=#{users.delete},
@@ -328,6 +339,6 @@
                   data-delete-loading=#{common.loading}"></div>
 
     <script src="/js/admin.js"></script>
-    <script src="/js/admin-users.js?v=20260927b"></script>
+    <script src="/js/admin-users.js?v=20260927c"></script>
 </body>
 </html>
