@@ -1,13 +1,19 @@
-﻿fix: 修复 users.html 被误编码导致用户管理页白屏
+﻿fix: 让"AI识别失败"能说出真实原因（此前异常被完全吞掉）
 
-上一轮我为了刷新 JS 缓存版本号，用 PowerShell 做了文本替换：
-  (Get-Content -Raw) -replace ... | Set-Content -Encoding utf8
-这行命令把 UTF-8 的 users.html 当成 ANSI/GBK 读入又写成 UTF-8，
-结果：全文件中文变成乱码，且乱码把 管理员</option> 里的 < 一起吃掉，
-HTML 标签被破坏 → 用户管理页整页白屏。
+现象：AI 服务 /identify 返回 502，但两个地方都看不到原因 ——
+  · recognition.py 没有 logger，异常直接抛 HTTPException，不留痕迹
+  · Spring 的 AiServiceClient 把任何异常统一包成"AI识别服务暂时不可用"
+结果手机上只有一句空话，无法判断是模型不支持视觉、模型名错、Key 无权限还是图片过大。
 
-修复：从上一次正确提交恢复 users.html，改用编辑工具重新应用三处改动
-（授权密码框、i18n 数据属性、JS 版本号 bump）。
+修改
+1) ai-service/app/api/v1/recognition.py
+   - 增加 logger，请求前记录 provider/model/图片字节数
+   - 失败时 logger.exception 打完整堆栈
+2) spring-backend AiServiceClient.identifyDisease
+   - 从异常里解析 AI 服务返回的 {"detail": "..."} 并透传到上层
+   - 区分连接失败/超时等网络原因
+   - 错误文案从"AI识别服务暂时不可用"改为"AI识别失败：<真实原因>"
 
-教训：这类文件一律不要用 PowerShell 做文本替换 —— 它对无 BOM 的 UTF-8
-文件会按 ANSI 解读，静默损坏内容（本次还额外引入了 BOM）。
+说明：/config/test 走的是纯文字 chat 调用（所以显示成功），
+而 /identify 走的是带图片的视觉请求 —— 两者失败原因可以完全不同，
+这次先把"看得见原因"补上。

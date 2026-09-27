@@ -4,6 +4,7 @@ Sprint 10.3 升级: 图片质量前置检测 + 置信度策略管理
 """
 import base64
 import io
+import logging
 import time
 
 from fastapi import APIRouter, HTTPException
@@ -14,6 +15,8 @@ from app.services.ai_providers.base import ProviderConfig
 from app.services.ai_providers.parser import AIResponseParser
 from app.services.quality.image_quality_checker import image_quality_checker, QualityGrade
 from app.services.quality.confidence_manager import confidence_manager
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -72,8 +75,14 @@ async def identify_disease(request: IdentifyRequest):
         crop_info = {"crop_name": request.crop_name}
 
     # 3. 调用AI Provider（使用后台配置的当前生效通道）
+    provider = None
     try:
         provider = build_provider(ProviderConfig.from_dict(request.provider_config))
+        logger.info(
+            "识别请求: provider=%s model=%s 图片=%d字节 language=%s crop=%s",
+            provider.provider_name, getattr(provider, "model", "?"),
+            len(image_bytes), request.language, request.crop_name or "-",
+        )
         results = await provider.identify_disease(
             image_bytes=image_bytes,
             crop_info=crop_info,
@@ -81,6 +90,15 @@ async def identify_disease(request: IdentifyRequest):
             version=request.version,
         )
     except Exception as e:
+        # ⚠️ 必须打日志：以前这里只抛 502、不打日志，
+        #    结果"识别不可用"排查时完全看不到真实原因（用户实际踩过）。
+        #    常见原因：模型不支持图片输入、模型名写错、Key 无权限、图片过大。
+        logger.exception(
+            "识别失败: provider=%s model=%s 图片=%d字节 错误=%s",
+            getattr(provider, "provider_name", "?"),
+            getattr(provider, "model", "?"),
+            len(image_bytes), e,
+        )
         raise HTTPException(status_code=502, detail=f"AI识别服务异常: {str(e)}")
 
     # 4. 如果Provider返回的是原始文本(str), 用Parser解析

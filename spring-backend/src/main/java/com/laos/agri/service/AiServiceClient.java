@@ -57,9 +57,39 @@ public class AiServiceClient {
             log.info("AI identify API success");
             return response;
         } catch (Exception e) {
-            log.error("AI identify API failed: {}", e.getMessage());
-            throw new RuntimeException("AI识别服务暂时不可用", e);
+            // 把 AI 服务的真实出错信息透传出来，不要再吞成一句"暂时不可用"。
+            // 踩过的坑：AI 服务返回 502 + {"detail":"AI识别服务异常: 模型不支持图片输入"}，
+            // 这里一律包成"AI识别服务暂时不可用"，手机上只能看到这句空话，
+            // 排查时完全不知道该改什么（模型名？Key？还是图片太大）。
+            String detail = extractAiServiceError(e);
+            log.error("AI identify API failed: {}", detail, e);
+            throw new RuntimeException("AI识别失败：" + detail, e);
         }
+    }
+
+    /**
+     * 从异常里挖出 AI 服务的错误说明
+     *
+     * <p>AI 服务（FastAPI）出错时返回 {@code {"detail": "..."}}，
+     * Spring 的 RestClient 会把它包在 HttpStatusCodeException 的响应体里。
+     * 这里尽量把那段文本取出来展示给用户/日志。
+     */
+    private static String extractAiServiceError(Exception e) {
+        if (e instanceof org.springframework.web.client.RestClientResponseException resp) {
+            String body = resp.getResponseBodyAsString();
+            if (body != null && !body.isBlank()) {
+                var m = java.util.regex.Pattern
+                        .compile("\"detail\"\\s*:\\s*\"([^\"]+)\"")
+                        .matcher(body);
+                if (m.find()) return m.group(1);
+                return body.length() > 300 ? body.substring(0, 300) : body;
+            }
+            return "AI 服务返回 HTTP " + resp.getStatusCode().value();
+        }
+        if (e instanceof java.net.ConnectException || e instanceof java.net.SocketTimeoutException) {
+            return "连不上 AI 服务（" + e.getMessage() + "）";
+        }
+        return e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
     }
 
     /**
