@@ -47,15 +47,12 @@ COMMENT ON COLUMN core.ai_provider_config.is_active IS 'TRUE=当前生效通道�
 -- ==========================================================
 -- 2. core."user" — 用户系统补强
 -- ==========================================================
--- 2.1 手机号唯一性 —— 口径是「区号 + 本地号码」组合
---     必须是组合唯一：+856 20xxxx 与 +66 20xxxx 是两个不同用户，
---     早期只对 phone 建唯一索引会导致跨国同号冲突。
-DROP INDEX IF EXISTS core.uk_user_phone;
-CREATE UNIQUE INDEX IF NOT EXISTS uk_user_country_phone
-    ON core."user"(country_code, phone)
-    WHERE phone IS NOT NULL AND country_code IS NOT NULL;
-
-COMMENT ON INDEX core.uk_user_country_phone IS '同一国家内本地号码唯一；跨国家允许同号';
+-- ⚠️ 顺序陷阱（真踩过）：手机号唯一索引用的是 (country_code, phone) 组合，
+--    而 country_code 这个列要到 2.5 才 ALTER 出来。索引语句若放在建列之前，
+--    PostgreSQL 会直接报 `column "country_code" does not exist` 并中断整个脚本 ——
+--    后续的 phone_verification / audit_log 建表语句全都不会执行。
+--    （这个脚本早期只在 H2 上跑过，H2 的表由 JPA 自动创建，所以一直没暴露。）
+--    因此：**唯一索引统一挪到 2.5 建完列之后**。
 
 -- 2.2 令牌版本号 —— 改密码 / 停用账号后，令已签发的 JWT 立即失效
 ALTER TABLE core."user" ADD COLUMN IF NOT EXISTS token_version INTEGER DEFAULT 0;
@@ -74,6 +71,16 @@ ALTER TABLE core."user" ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'APP
 ALTER TABLE core."user" ADD COLUMN IF NOT EXISTS country_code VARCHAR(6);
 COMMENT ON COLUMN core."user".country_code IS '国际区号（856=老挝 86=中国 66=泰国 84=越南），为空表示历史数据未拆分';
 COMMENT ON COLUMN core."user".phone IS '本地手机号（不含区号）；历史数据可能含区号，以 country_code 是否为空判断';
+
+-- 2.5.1 手机号唯一性（**必须放在 country_code 建好之后**，见本节开头的顺序陷阱说明）
+--     口径是「区号 + 本地号码」组合：+856 20xxxx 与 +66 20xxxx 是两个不同用户，
+--     早期只对 phone 建唯一索引会导致跨国同号冲突。
+DROP INDEX IF EXISTS core.uk_user_phone;
+CREATE UNIQUE INDEX IF NOT EXISTS uk_user_country_phone
+    ON core."user"(country_code, phone)
+    WHERE phone IS NOT NULL AND country_code IS NOT NULL;
+
+COMMENT ON INDEX core.uk_user_country_phone IS '同一国家内本地号码唯一；跨国家允许同号';
 
 -- 2.6 首次登录 / 被重置密码后需提醒改密
 ALTER TABLE core."user" ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT FALSE;
